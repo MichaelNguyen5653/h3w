@@ -1,10 +1,10 @@
 #!/bin/bash
-# chisle — statusline badge for Claude Code
+# h3w — statusline badge for Claude Code
 #
 # Usage in ~/.claude/settings.json:
-#   "statusLine": { "type": "command", "command": "bash /path/to/chisle-statusline.sh" }
+#   "statusLine": { "type": "command", "command": "bash /path/to/h3w-statusline.sh" }
 
-FLAG="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/.chisle-active"
+FLAG="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/.h3w-active"
 
 # Drain Claude's statusline JSON from stdin (carries rate_limits.* — the same
 # 5h/weekly figures /usage shows). Read before any early exit so the pipe closes.
@@ -74,7 +74,7 @@ fi
 # Input-side savings from the tool-output compressor ledger. Measured (chars
 # actually elided), not estimated — unlike an output-side counter, this one has
 # a real baseline. Digits-only extract; symlink-refused like the mode flag.
-STATS="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/.chisle-compress-stats.json"
+STATS="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/.h3w-compress-stats.json"
 if [ -f "$STATS" ] && [ ! -L "$STATS" ]; then
   SAVED=$(head -c 256 "$STATS" 2>/dev/null | grep -oE '"savedChars":[0-9]+' | grep -oE '[0-9]+' | head -1)
   if [ -n "$SAVED" ] && [ "$SAVED" -gt 0 ] 2>/dev/null; then
@@ -86,4 +86,4 @@ if [ -f "$STATS" ] && [ ! -L "$STATS" ]; then
 fi
 
 # Orange badge + loading bars trailing outside the bracket. One mode, one badge.
-printf '\033[38;5;172m[CHISLE]\033[0m%s' "$LIMITS"
+printf '\033[38;5;172m[H3W]\033[0m%s' "$LIMITS"

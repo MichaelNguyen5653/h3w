@@ -15,7 +15,7 @@ function output(lines) {
 }
 
 test('Pi live JSONL normalizes to the existing benchmark cell schema', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-pi-live-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-pi-live-'));
   const file = path.join(dir, 'events.jsonl');
   fs.writeFileSync(file, [
     JSON.stringify({ type: 'session', version: 3 }),
@@ -33,7 +33,7 @@ test('Pi live JSONL normalizes to the existing benchmark cell schema', () => {
 });
 
 test('Pi replay reads toolResult messages and reports marginal post-truncation savings', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-pi-replay-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-pi-replay-'));
   const entries = [
     { type: 'session', version: 3, id: 'session', cwd: '/tmp' },
     { type: 'message', id: '1', parentId: null, message: {
@@ -64,7 +64,7 @@ test('Pi replay reads toolResult messages and reports marginal post-truncation s
 });
 
 test('Claude replay never counts a failed tool call as compressible', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-claude-replay-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-claude-replay-'));
   const use = (id) => ({ message: { role: 'assistant', content: [{ type: 'tool_use', id, name: 'Bash', input: {} }] } });
   const result = (id, isError) => ({ message: { role: 'user', content: [
     { type: 'tool_result', tool_use_id: id, is_error: isError, content: output(500) },
@@ -81,7 +81,7 @@ test('Claude replay never counts a failed tool call as compressible', () => {
 });
 
 test('Claude replay reports per-tool compression savings', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-claude-breakdown-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-claude-breakdown-'));
 
   const use = (id, name) => ({
     message: {

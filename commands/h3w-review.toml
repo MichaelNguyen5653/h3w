@@ -1,5 +1,5 @@
-# chisle-review: review a diff/file for over-engineering
+# h3w-review: review a diff/file for over-engineering
 [command]
-name = "chisle-review"
+name = "h3w-review"
 description = "Review the current diff or a file for bloat, speculative abstractions, and reinvented stdlib."
 argument-hint = "[file or empty for current diff]"

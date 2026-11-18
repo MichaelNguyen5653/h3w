@@ -1,4 +1,4 @@
-// chisle — OpenCode plugin: tool-output compression (the input axis).
+// h3w — OpenCode plugin: tool-output compression (the input axis).
 //
 // Prompt-side rules (the fenced ruleset the installer writes into the global
 // OpenCode config root's AGENTS.md) shrink what the model WRITES. This plugin
@@ -15,15 +15,15 @@
 // net that re-compresses any full output the store still holds (e.g. recorded
 // before this plugin was installed). Neither needs a schema rebuild.
 //
-// Load it by installing via `npx chisle --only opencode`, which drops this file
+// Load it by installing via `npx github:MichaelNguyen5653/h3w --only opencode`, which drops this file
 // and the shared compressor core into the configured OpenCode plugins dir. OpenCode
 // loads every file in that dir at startup.
 //
-// Tunables (shared with the Claude/Pi/Copilot compressor, see chisle-config):
-//   CHISLE_COMPRESS=0            kill switch
-//   CHISLE_DEFAULT_MODE=off      disable by default (env or ~/.config/chisle)
-//   CHISLE_COMPRESS_MAX_CHARS    elision threshold and final OpenCode bound
-//   CHISLE_COMPRESS_TOOLS=bash,… override the tool allowlist
+// Tunables (shared with the Claude/Pi/Copilot compressor, see h3w-config):
+//   H3W_COMPRESS=0            kill switch
+//   H3W_DEFAULT_MODE=off      disable by default (env or ~/.config/h3w)
+//   H3W_COMPRESS_MAX_CHARS    elision threshold and final OpenCode bound
+//   H3W_COMPRESS_TOOLS=bash,… override the tool allowlist
 
 import { createRequire } from 'module';
 import path from 'path';
@@ -32,8 +32,8 @@ import { fileURLToPath } from 'url';
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// The compressor core is CommonJS. When installed by `chisle --only opencode`
-// it sits in ./chisle-hooks/; running straight from the repo it's ../../hooks/.
+// The compressor core is CommonJS. When installed by `h3w --only opencode`
+// it sits in ./h3w-hooks/; running straight from the repo it's ../../hooks/.
 function loadFrom(names) {
   for (const rel of names) {
     try { return require(rel); }
@@ -43,12 +43,12 @@ function loadFrom(names) {
 }
 
 const core = loadFrom([
-  './chisle-hooks/chisle-compress-output.js',
-  '../../hooks/chisle-compress-output.js',
+  './h3w-hooks/h3w-compress-output.js',
+  '../../hooks/h3w-compress-output.js',
 ]);
 const config = loadFrom([
-  './chisle-hooks/chisle-config.js',
-  '../../hooks/chisle-config.js',
+  './h3w-hooks/h3w-config.js',
+  '../../hooks/h3w-config.js',
 ]) || { getDefaultMode: () => 'on' };
 
 const compressForOpencode = core && core.compressForOpencode;
@@ -59,7 +59,7 @@ const getOpencodeStateDir = config.getOpencodeStateDir || config.getOpencodeDir 
 // Already compressed: our elision marker. Skip such text so a second pass
 // (messages.transform after tool.execute.after already ran) never nests a
 // marker or eats an earlier salvage block. Keeps compression idempotent.
-const CHISLE_MARK = '[chisle:';
+const H3W_MARK = '[h3w:';
 const getOpencodeMaxChars = () =>
   (core && core.limitsFor && core.limitsFor().maxChars) || 8000;
 
@@ -79,7 +79,7 @@ export default async () => {
         // MCP tools can hand back a content[] array rather than a string;
         // built-ins give a string. Only the string case is ours to touch.
         if (!output || typeof output.output !== 'string') return;
-        if (output.output.includes(CHISLE_MARK) && output.output.length <= getOpencodeMaxChars()) return;
+        if (output.output.includes(H3W_MARK) && output.output.length <= getOpencodeMaxChars()) return;
         const original = output.output;
         const updated = compressForOpencode(input && input.tool, original, {
           mode: getDefaultMode(),
@@ -114,7 +114,7 @@ export default async () => {
             if (!part || part.type !== 'tool') continue;
             const st = part.state;
             if (!st || st.status !== 'completed' || typeof st.output !== 'string') continue;
-            if (st.output.includes(CHISLE_MARK) && st.output.length <= getOpencodeMaxChars()) continue;
+            if (st.output.includes(H3W_MARK) && st.output.length <= getOpencodeMaxChars()) continue;
             const updated = compressForOpencode(part.tool, st.output, { mode });
             if (updated != null && updated.length < st.output.length) {
               st.output = updated;

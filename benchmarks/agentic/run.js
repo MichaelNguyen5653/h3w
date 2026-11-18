@@ -11,7 +11,7 @@
 //   chisle-trim = chisle plus the deny list `npx chisle tools trim` writes for
 //   tools a coding loop never calls (TRIM_TOOLS overrides the list)
 //   PONYTAIL_SKILL=path              ponytail SKILL.md (default: installed plugin cache)
-//   CHISLE_SKILL=path                candidate ruleset for the chisle arms (default: skills/chisle/SKILL.md)
+//   CHISLE_SKILL=path                candidate ruleset for the chisle arms (default: skills/h3w/SKILL.md)
 //   FIXTURES=noisylog,reuse          run only these fixtures (default: all)
 //   RAW_DIR=path                     where cells go (default: ./raw); use a fresh
 //                                    dir when the ruleset changes, or old cells

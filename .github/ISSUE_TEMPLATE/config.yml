@@ -9,14 +9,14 @@
 blank_issues_enabled: true
 contact_links:
   - name: Question or install help
-    url: https://github.com/JayPokale/Chisle/discussions/categories/q-a
-    about: Not sure why Chisle isn't firing for your agent, or how to configure it? Ask here — answers get marked and stay findable.
+    url: https://github.com/MichaelNguyen5653/h3w/discussions/categories/q-a
+    about: Not sure why h3w isn't firing for your agent, or how to configure it? Ask here — answers get marked and stay findable.
   - name: Idea or feature discussion
-    url: https://github.com/JayPokale/Chisle/discussions/categories/ideas
+    url: https://github.com/MichaelNguyen5653/h3w/discussions/categories/ideas
     about: Float an idea before it's a concrete request. Well-formed proposals can still go straight to a feature request issue.
   - name: Show your numbers
-    url: https://github.com/JayPokale/Chisle/discussions/categories/show-and-tell
+    url: https://github.com/MichaelNguyen5653/h3w/discussions/categories/show-and-tell
     about: Post your own before/after token counts, or a setup that worked well.
   - name: Security vulnerability
-    url: https://github.com/JayPokale/Chisle/security/policy
+    url: https://github.com/MichaelNguyen5653/h3w/security/policy
     about: Report privately. Never open a public issue for a vulnerability.

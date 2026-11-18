@@ -12,7 +12,7 @@ const os = require('os');
 const crypto = require('crypto');
 const {
   duplicateMarker, extractText, transform, limitsFor, toolAllowed,
-} = require('../hooks/chisle-compress-output');
+} = require('../hooks/h3w-compress-output');
 const { piToolAllowed } = require('../pi-extension');
 
 const args = process.argv.slice(2);

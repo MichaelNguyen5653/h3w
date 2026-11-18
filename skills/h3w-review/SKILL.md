@@ -1,13 +1,13 @@
 ---
-name: chisle-review
+name: h3w-review
 description: >
-  Review a diff or file through the Chisle lens: flag over-engineering,
+  Review a diff or file through the h3w lens: flag over-engineering,
   speculative abstractions, reinvented stdlib, and verbose code that a lazier
   approach would shrink. One finding per line, no praise. Use when the user says
-  "chisle review", "review this for bloat", or invokes /chisle-review.
+  "h3w review", "review this for bloat", or invokes /h3w-review.
 ---
 
-# Chisle review
+# h3w review
 
 Review the diff/file for **what could be deleted or simplified**, not for style nits.
 

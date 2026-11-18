@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// chisle: cross-platform installer.
+// h3w: cross-platform installer.
 //
-// Detects the AI coding agents on this machine and installs Chisle for each:
+// Detects the AI coding agents on this machine and installs h3w for each:
 //   - Claude Code  → plugin (marketplace add + install), fallback to standalone
 //                    hooks + settings.json merge + statusline badge
 //   - Pi           → Pi package (extension + skill)
@@ -13,13 +13,13 @@
 //   - Cursor/Windsurf/Cline/Kiro/Copilot/Antigravity → project rule file dropped into CWD
 //
 // Usage:
-//   npx chisle                 auto-detect + install
-//   npx chisle --list          show detected agents, install nothing
-//   npx chisle --only claude   install for one agent
-//   npx chisle --dry-run       print actions, change nothing
-//   npx chisle --uninstall     remove what we installed
-//   npx chisle mcp wrap        route stdio MCP servers through the compressor
-//   npx chisle --help
+//   npx github:MichaelNguyen5653/h3w                 auto-detect + install
+//   npx github:MichaelNguyen5653/h3w --list          show detected agents, install nothing
+//   npx github:MichaelNguyen5653/h3w --only claude   install for one agent
+//   npx github:MichaelNguyen5653/h3w --dry-run       print actions, change nothing
+//   npx github:MichaelNguyen5653/h3w --uninstall     remove what we installed
+//   npx github:MichaelNguyen5653/h3w mcp wrap        route stdio MCP servers through the compressor
+//   npx github:MichaelNguyen5653/h3w --help
 //
 // Pure stdlib, zero runtime deps.
 
@@ -33,9 +33,9 @@ const cp = require('child_process');
 const SETTINGS = require('./lib/settings');
 const MCP = require('./lib/mcp');
 const TOOLS = require('./lib/tools');
-const { getOpencodeDir, getOpencodeStateDir } = require('../hooks/chisle-config');
+const { getOpencodeDir, getOpencodeStateDir } = require('../hooks/h3w-config');
 
-const REPO = 'JayPokale/Chisle';
+const REPO = 'MichaelNguyen5653/h3w';
 const IS_WIN = process.platform === 'win32';
 
 // Repo root = parent of bin/. Installed package or local clone both work.
@@ -54,19 +54,19 @@ const PROVIDERS = [
   { id: 'opencode', label: 'OpenCode',        scope: 'global',  detect: 'cmd:opencode' },
   { id: 'hermes',   label: 'Hermes Agent',    scope: 'global',  detect: 'cmd:hermes||dir:~/.hermes' },
   { id: 'cursor',   label: 'Cursor',        scope: 'project', detect: 'cmd:cursor||dir:~/.cursor',
-    rule: '.cursor/rules/chisle.mdc' },
+    rule: '.cursor/rules/h3w.mdc' },
   { id: 'windsurf', label: 'Windsurf',      scope: 'project', detect: 'cmd:windsurf||dir:~/.windsurf||dir:~/.codeium/windsurf',
-    rule: '.windsurf/rules/chisle.md' },
+    rule: '.windsurf/rules/h3w.md' },
   { id: 'cline',    label: 'Cline',         scope: 'project', detect: 'vscode-ext:cline',
-    rule: '.clinerules/chisle.md' },
+    rule: '.clinerules/h3w.md' },
   { id: 'kiro',     label: 'Kiro',          scope: 'project', detect: 'cmd:kiro||dir:~/.kiro',
-    rule: '.kiro/steering/chisle.md' },
+    rule: '.kiro/steering/h3w.md' },
   { id: 'copilot',  label: 'GitHub Copilot',scope: 'project', detect: 'vscode-ext:github.copilot||vscode-ext:github.copilot-chat',
     rule: '.github/copilot-instructions.md' },
   // Antigravity IDE (`antigravity`) and its CLI (`agy`, antigravity-cli) both
   // load workspace rules from .agents/rules/*.md.
   { id: 'antigravity', label: 'Antigravity', scope: 'project', detect: 'cmd:antigravity||cmd:agy||dir:~/.antigravity',
-    rule: '.agents/rules/chisle.md' },
+    rule: '.agents/rules/h3w.md' },
 ];
 
 // ── argv ────────────────────────────────────────────────────────────────────
@@ -81,7 +81,7 @@ function parseArgs(argv) {
       case '--list': opts.list = true; break;
       case '--stats': opts.stats = true; break;
       // --update is --force narrowed to what is already there: refresh every
-      // agent that has Chisle, add it to none that don't.
+      // agent that has h3w, add it to none that don't.
       case '--update': opts.update = true; opts.force = true; break;
       case '--uninstall': case '-u': opts.uninstall = true; break;
       case '--no-color': opts.noColor = true; break;
@@ -99,12 +99,12 @@ function parseArgs(argv) {
         opts.configDir = expandHome(v);
         break;
       }
-      default: die(`error: unknown flag: ${a}\nrun 'npx chisle --help' for usage`);
+      default: die(`error: unknown flag: ${a}\nrun 'npx github:MichaelNguyen5653/h3w --help' for usage`);
     }
   }
   if (opts.only.length) {
     const known = new Set(PROVIDERS.map(p => p.id));
-    for (const id of opts.only) if (!known.has(id)) die(`error: unknown agent: ${id}\n  see 'npx chisle --list'`);
+    for (const id of opts.only) if (!known.has(id)) die(`error: unknown agent: ${id}\n  see 'npx github:MichaelNguyen5653/h3w --list'`);
   }
   return opts;
 }
@@ -195,9 +195,9 @@ function claudeDir(opts) {
   return path.join(os.homedir(), '.claude');
 }
 
-// Home dir for Chisle-managed global targets. CHISLE_HOME overrides it
+// Home dir for h3w-managed global targets. H3W_HOME overrides it
 // (tests, containers); mirrors the CLAUDE_CONFIG_DIR precedent for Claude.
-function homeDir() { return process.env.CHISLE_HOME || os.homedir(); }
+function homeDir() { return process.env.H3W_HOME || os.homedir(); }
 
 function opencodeDir() { return getOpencodeDir({ home: homeDir() }); }
 // Copilot CLI reads hooks, instructions and MCP config under COPILOT_HOME.
@@ -211,8 +211,8 @@ function opencodeMajor() {
 }
 
 // ── what is already installed ───────────────────────────────────────────────
-// Every install path skips when Chisle is already present, which is right for
-// `npx chisle` and useless for an upgrade: the run reports success and changes
+// Every install path skips when h3w is already present, which is right for
+// `npx github:MichaelNguyen5653/h3w` and useless for an upgrade: the run reports success and changes
 // nothing. --update pairs this check with --force so a refresh touches exactly
 // the agents that already have it.
 function installedFor(id, opts) {
@@ -221,14 +221,14 @@ function installedFor(id, opts) {
       case 'claude': {
         if (hasCmd('claude')) {
           const r = capture('claude', ['plugin', 'list']);
-          if (r.status === 0 && /chisle/i.test(r.stdout || '')) return true;
+          if (r.status === 0 && /h3w/i.test(r.stdout || '')) return true;
         }
         const settings = SETTINGS.readSettings(path.join(claudeDir(opts), 'settings.json'));
         const hooks = (settings && settings.hooks) || {};
         for (const event of Object.keys(hooks)) {
           for (const entry of hooks[event] || []) {
             for (const h of (entry && entry.hooks) || []) {
-              if (typeof h.command === 'string' && h.command.includes('chisle-')) return true;
+              if (typeof h.command === 'string' && h.command.includes('h3w-')) return true;
             }
           }
         }
@@ -239,7 +239,7 @@ function installedFor(id, opts) {
       case 'gemini': {
         if (!hasCmd('gemini')) return false;
         const r = capture('gemini', ['extensions', 'list']);
-        return r.status === 0 && /chisle/i.test(r.stdout || '');
+        return r.status === 0 && /h3w/i.test(r.stdout || '');
       }
       case 'codex': {
         const md = path.join(homeDir(), '.codex', 'AGENTS.md');
@@ -250,12 +250,12 @@ function installedFor(id, opts) {
           const md = path.join(opencodeDir(), 'AGENTS.md');
           if (fs.existsSync(md) && fs.readFileSync(md, 'utf8').includes(FENCE_BEGIN)) return true;
         } catch (_) {}
-        return fs.existsSync(path.join(opencodeDir(), 'skills', 'chisle', 'SKILL.md'));
+        return fs.existsSync(path.join(opencodeDir(), 'skills', 'h3w', 'SKILL.md'));
       }
       case 'hermes':
-        return fs.existsSync(path.join(homeDir(), '.hermes', 'skills', 'chisle', 'SKILL.md'));
+        return fs.existsSync(path.join(homeDir(), '.hermes', 'skills', 'h3w', 'SKILL.md'));
       case 'copilot-cli':
-        return fs.existsSync(path.join(copilotDir(), 'hooks', 'chisle.json'));
+        return fs.existsSync(path.join(copilotDir(), 'hooks', 'h3w.json'));
       default: {
         const prov = PROVIDERS.find(x => x.id === id);
         return !!(prov && prov.rule && fs.existsSync(path.join(process.cwd(), prov.rule)));
@@ -275,18 +275,18 @@ function installClaude(ctx) {
     let already = false;
     if (!opts.force) {
       const r = capture('claude', ['plugin', 'list']);
-      if (r.status === 0 && /chisle/i.test(r.stdout || '')) already = true;
+      if (r.status === 0 && /h3w/i.test(r.stdout || '')) already = true;
     }
     if (already) {
-      note('  chisle plugin already installed (use --force to reinstall)');
+      note('  h3w plugin already installed (use --force to reinstall)');
       results.skipped.push(['claude', 'plugin already installed']);
       pluginOK = true;
     } else {
       // `plugin install` is a no-op for an already-installed plugin, so an
       // upgrade (--update / --force) has to go through `plugin update`.
-      const present = opts.force && /chisle/i.test(capture('claude', ['plugin', 'list']).stdout || '');
+      const present = opts.force && /h3w/i.test(capture('claude', ['plugin', 'list']).stdout || '');
       const r1 = run('claude', ['plugin', 'marketplace', 'add', REPO], opts.dryRun);
-      const r2 = run('claude', ['plugin', present ? 'update' : 'install', 'chisle@chisle'], opts.dryRun);
+      const r2 = run('claude', ['plugin', present ? 'update' : 'install', 'h3w@h3w'], opts.dryRun);
       if (ranOk(r1) && ranOk(r2)) { results.installed.push('claude'); pluginOK = true; }
       else warn('  claude plugin install failed, falling back to standalone hooks');
     }
@@ -306,7 +306,7 @@ function installClaude(ctx) {
     // dedups first-seen output against itself.
     const settingsPath = path.join(claudeDir(opts), 'settings.json');
     const settings = SETTINGS.readSettings(settingsPath);
-    if (settings && SETTINGS.removeHooks(settings, 'chisle-') > 0) {
+    if (settings && SETTINGS.removeHooks(settings, 'h3w-') > 0) {
       if (!opts.dryRun) {
         SETTINGS.validateHookFields(settings);
         SETTINGS.writeSettings(settingsPath, settings);
@@ -317,17 +317,17 @@ function installClaude(ctx) {
   process.stdout.write('\n');
 }
 
-// Standalone wiring: copy hooks into <configDir>/chisle-hooks/ and merge
+// Standalone wiring: copy hooks into <configDir>/h3w-hooks/ and merge
 // settings.json. Used when the plugin path is unavailable.
 function installClaudeHooks(ctx) {
   const { opts, warn, note } = ctx;
   const cfg = claudeDir(opts);
   const hooksSrc = path.join(REPO_ROOT, 'hooks');
-  const hooksDst = path.join(cfg, 'chisle-hooks');
+  const hooksDst = path.join(cfg, 'h3w-hooks');
   const settingsPath = path.join(cfg, 'settings.json');
-  const HOOK_FILES = ['package.json', 'chisle-config.js', 'chisle-activate.js',
-                      'chisle-mode.js', 'chisle-mode-tracker.js', 'chisle-compress-output.js',
-                      'chisle-statusline.sh', 'chisle-statusline.ps1'];
+  const HOOK_FILES = ['package.json', 'h3w-config.js', 'h3w-activate.js',
+                      'h3w-mode.js', 'h3w-mode-tracker.js', 'h3w-compress-output.js',
+                      'h3w-statusline.sh', 'h3w-statusline.ps1'];
 
   if (opts.dryRun) {
     note(`  would copy ${HOOK_FILES.length} hook files → ${hooksDst}`);
@@ -340,7 +340,7 @@ function installClaudeHooks(ctx) {
     const s = path.join(hooksSrc, f);
     if (fs.existsSync(s)) fs.copyFileSync(s, path.join(hooksDst, f));
   }
-  try { fs.chmodSync(path.join(hooksDst, 'chisle-statusline.sh'), 0o755); } catch (_) {}
+  try { fs.chmodSync(path.join(hooksDst, 'h3w-statusline.sh'), 0o755); } catch (_) {}
 
   const settings = SETTINGS.readSettings(settingsPath);
   if (settings === null) { warn('  settings.json unparseable; not touching it.'); return 'settings.json unparseable'; }
@@ -349,29 +349,29 @@ function installClaudeHooks(ctx) {
   if (fs.existsSync(settingsPath) && !fs.existsSync(bak)) { try { fs.copyFileSync(settingsPath, bak); } catch (_) {} }
 
   const node = process.execPath;
-  const activate = path.join(hooksDst, 'chisle-activate.js');
-  const tracker = path.join(hooksDst, 'chisle-mode-tracker.js');
-  const compress = path.join(hooksDst, 'chisle-compress-output.js');
+  const activate = path.join(hooksDst, 'h3w-activate.js');
+  const tracker = path.join(hooksDst, 'h3w-mode-tracker.js');
+  const compress = path.join(hooksDst, 'h3w-compress-output.js');
 
   SETTINGS.addCommandHook(settings, 'SessionStart',
-    { command: `"${node}" "${activate}"`, marker: 'chisle-activate', timeout: 5, statusMessage: 'Loading chisle mode...' });
+    { command: `"${node}" "${activate}"`, marker: 'h3w-activate', timeout: 5, statusMessage: 'Loading h3w mode...' });
   SETTINGS.addCommandHook(settings, 'UserPromptSubmit',
-    { command: `"${node}" "${tracker}"`, marker: 'chisle-mode-tracker', timeout: 5, statusMessage: 'Tracking chisle mode...' });
+    { command: `"${node}" "${tracker}"`, marker: 'h3w-mode-tracker', timeout: 5, statusMessage: 'Tracking h3w mode...' });
   SETTINGS.addCommandHook(settings, 'PostToolUse',
-    { command: `"${node}" "${compress}"`, marker: 'chisle-compress-output', timeout: 10,
+    { command: `"${node}" "${compress}"`, marker: 'h3w-compress-output', timeout: 10,
       matcher: 'Bash|Agent|WebFetch|WebSearch|Grep|Glob|mcp__.*', statusMessage: 'Compressing tool output...' });
 
   const psHost = IS_WIN && hasCmd('pwsh') ? 'pwsh' : (IS_WIN ? 'powershell' : null);
   const slCmd = IS_WIN
-    ? `${psHost} -NoProfile -ExecutionPolicy Bypass -File "${path.join(hooksDst, 'chisle-statusline.ps1')}"`
-    : `bash "${path.join(hooksDst, 'chisle-statusline.sh')}"`;
+    ? `${psHost} -NoProfile -ExecutionPolicy Bypass -File "${path.join(hooksDst, 'h3w-statusline.ps1')}"`
+    : `bash "${path.join(hooksDst, 'h3w-statusline.sh')}"`;
   if (!settings.statusLine) {
     settings.statusLine = { type: 'command', command: slCmd };
     process.stdout.write('  statusline badge configured.\n');
   } else {
     const existing = typeof settings.statusLine === 'string' ? settings.statusLine : (settings.statusLine.command || '');
-    if (existing.includes('chisle-statusline')) process.stdout.write('  statusline badge already configured.\n');
-    else process.stdout.write('  NOTE: existing statusline detected, CHISLE badge NOT added (see docs/install-windows.md).\n');
+    if (existing.includes('h3w-statusline')) process.stdout.write('  statusline badge already configured.\n');
+    else process.stdout.write('  NOTE: existing statusline detected, H3W badge NOT added (see docs/install-windows.md).\n');
   }
 
   SETTINGS.validateHookFields(settings);
@@ -383,7 +383,7 @@ function installClaudeHooks(ctx) {
 // ── Pi ──────────────────────────────────────────────────────────────────────
 function piSources(output) {
   return String(output || '').split('\n').map(line => line.trim())
-    .filter(line => /^npm:chisle(?:@|$)/i.test(line) || /^git:.*github\.com\/JayPokale\/Chisle(?:@|$)/i.test(line))
+    .filter(line => /^git:.*github\.com\/MichaelNguyen5653\/h3w(?:@|$)/i.test(line))
     .map(source => source.replace(/@[^/@]+$/, ''));
 }
 
@@ -394,11 +394,11 @@ function installPi(ctx) {
   if (!opts.force) {
     const installed = piSources(capture('pi', ['list']).stdout);
     if (installed.length) {
-      note('  chisle package already installed (use --force)');
+      note('  h3w package already installed (use --force)');
       results.skipped.push(['pi', 'already installed']); process.stdout.write('\n'); return;
     }
   }
-  const r = run('pi', ['install', 'npm:chisle'], opts.dryRun);
+  const r = run('pi', ['install', 'git:github.com/MichaelNguyen5653/h3w'], opts.dryRun);
   if (ranOk(r)) results.installed.push('pi');
   else results.failed.push(['pi', 'pi package install failed']);
   process.stdout.write('\n');
@@ -411,8 +411,8 @@ function installGemini(ctx) {
   say('→ Gemini CLI detected');
   if (!opts.force) {
     const r = capture('gemini', ['extensions', 'list']);
-    if (r.status === 0 && /chisle/i.test(r.stdout || '')) {
-      note('  chisle extension already installed (use --force)');
+    if (r.status === 0 && /h3w/i.test(r.stdout || '')) {
+      note('  h3w extension already installed (use --force)');
       results.skipped.push(['gemini', 'already installed']); process.stdout.write('\n'); return;
     }
   }
@@ -460,7 +460,7 @@ function copySkills(dstRoot, opts) {
   return written;
 }
 
-// Removes only the skill dirs Chisle owns; foreign skills stay put.
+// Removes only the skill dirs h3w owns; foreign skills stay put.
 function pruneSkills(dstRoot) {
   var removed = 0;
   var names = ownedSkillNames();
@@ -485,7 +485,7 @@ function writeFencedRuleset(target, opts, note) {
   try { existing = fs.readFileSync(target, 'utf8'); } catch (_) {}
   if (existing.indexOf(FENCE_BEGIN) !== -1) {
     if (!opts.force) {
-      note('  ' + target + ' already contains chisle ruleset (--force to refresh)');
+      note('  ' + target + ' already contains h3w ruleset (--force to refresh)');
       return 'skipped';
     }
     var b = existing.indexOf(FENCE_BEGIN);
@@ -495,7 +495,7 @@ function writeFencedRuleset(target, opts, note) {
     // content of unknown extent, so refuse rather than guess: rewriting would
     // delete the rest of their global instructions.
     if (e === -1) {
-      note('  ' + target + ' has a chisle-begin marker with no chisle-end; leaving it alone');
+      note('  ' + target + ' has a h3w-begin marker with no h3w-end; leaving it alone');
       note('  remove the stray marker by hand, then re-run');
       return 'skipped';
     }
@@ -517,8 +517,8 @@ function writeFencedRuleset(target, opts, note) {
 }
 
 // ── Codex (fenced ruleset in ~/.codex/AGENTS.md) ────────────────────────────
-const FENCE_BEGIN = '<!-- chisle-begin -->';
-const FENCE_END = '<!-- chisle-end -->';
+const FENCE_BEGIN = '<!-- h3w-begin -->';
+const FENCE_END = '<!-- h3w-end -->';
 
 function installCodex(ctx) {
   const { say, note, opts, results } = ctx;
@@ -526,7 +526,7 @@ function installCodex(ctx) {
   say('\u2192 Codex detected');
   const target = path.join(homeDir(), '.codex', 'AGENTS.md');
 
-  if (opts.dryRun) { note('  would write chisle ruleset to ' + target); results.installed.push('codex'); process.stdout.write('\n'); return; }
+  if (opts.dryRun) { note('  would write h3w ruleset to ' + target); results.installed.push('codex'); process.stdout.write('\n'); return; }
 
   try {
     const st = writeFencedRuleset(target, opts, note);
@@ -543,19 +543,19 @@ function installCodex(ctx) {
 // (the global skills dir is scanned by default, so skills.paths needs no
 // edit and no second system message is added).
 // Copies the version-matched OpenCode plugin and shared compressor core.
-// V1 gets plugins/chisle.js; V2 gets the directory plugin plugins/chisle/.
+// V1 gets plugins/h3w.js; V2 gets the directory plugin plugins/h3w/.
 // The source entrypoints stay separate and both load the same CommonJS core.
-// chisle-hooks/package.json pins that core as CommonJS under type:module roots.
+// h3w-hooks/package.json pins that core as CommonJS under type:module roots.
 function copyOpencodePlugin(root, major) {
   const pluginDir = path.join(root, 'plugins');
   const v2 = major >= 2;
-  const entryDir = v2 ? path.join(pluginDir, 'chisle') : pluginDir;
-  const hooksDir = path.join(entryDir, 'chisle-hooks');
+  const entryDir = v2 ? path.join(pluginDir, 'h3w') : pluginDir;
+  const hooksDir = path.join(entryDir, 'h3w-hooks');
   const files = [
-    [v2 ? '.opencode/plugins-v2/chisle/index.mjs' : '.opencode/plugins/chisle.mjs', path.join(entryDir, v2 ? 'index.js' : 'chisle.js')],
-    ...(v2 ? [['.opencode/plugins-v2/chisle/setup.cjs', path.join(entryDir, 'setup.cjs')]] : []),
-    ['hooks/chisle-compress-output.js', path.join(hooksDir, 'chisle-compress-output.js')],
-    ['hooks/chisle-config.js', path.join(hooksDir, 'chisle-config.js')],
+    [v2 ? '.opencode/plugins-v2/h3w/index.mjs' : '.opencode/plugins/h3w.mjs', path.join(entryDir, v2 ? 'index.js' : 'h3w.js')],
+    ...(v2 ? [['.opencode/plugins-v2/h3w/setup.cjs', path.join(entryDir, 'setup.cjs')]] : []),
+    ['hooks/h3w-compress-output.js', path.join(hooksDir, 'h3w-compress-output.js')],
+    ['hooks/h3w-config.js', path.join(hooksDir, 'h3w-config.js')],
   ];
   fs.mkdirSync(hooksDir, { recursive: true });
   var n = 0;
@@ -576,10 +576,10 @@ function installOpencode(ctx) {
   const target = path.join(root, 'AGENTS.md');
   const skillsDst = path.join(root, 'skills');
   const major = opencodeMajor();
-  const pluginDst = path.join(root, 'plugins', major >= 2 ? 'chisle' : '');
+  const pluginDst = path.join(root, 'plugins', major >= 2 ? 'h3w' : '');
 
   if (opts.dryRun) {
-    note('  would write chisle ruleset to ' + target);
+    note('  would write h3w ruleset to ' + target);
     note('  would copy skills to ' + skillsDst);
     note('  would copy compression plugin to ' + pluginDst);
     results.installed.push('opencode');
@@ -589,7 +589,7 @@ function installOpencode(ctx) {
 
   try {
     const st = writeFencedRuleset(target, opts, note);
-    const stale = major >= 2 ? ['chisle.js', 'chisle-hooks'] : ['chisle'];
+    const stale = major >= 2 ? ['h3w.js', 'h3w-hooks'] : ['h3w'];
     for (const rel of stale) fs.rmSync(path.join(root, 'plugins', rel), { recursive: true, force: true });
     const n = copySkills(skillsDst, opts);
     process.stdout.write('  installed: ' + n + ' skill file(s) to ' + skillsDst + '\n');
@@ -604,7 +604,7 @@ function installOpencode(ctx) {
 // ── Copilot CLI ─────────────────────────────────────────────────────────────
 // Rules: fenced block in ~/.copilot/copilot-instructions.md, Copilot CLI's
 // user-level instructions file. Input axis: a user-level postToolUse hook
-// (~/.copilot/hooks/chisle.json, no workspace admission needed) running the
+// (~/.copilot/hooks/h3w.json, no workspace admission needed) running the
 // shared compressor, which already speaks Copilot's camelCase payload and
 // answers with modifiedResult. Verified live on Copilot CLI 1.0.95: a
 // 13.9k-char shell result reached the model at ~100 lines with the mid-log
@@ -629,11 +629,11 @@ function installCopilotCli(ctx) {
   say('\u2192 Copilot CLI detected');
   const root = copilotDir();
   const rules = path.join(root, 'copilot-instructions.md');
-  const hooksDir = path.join(root, 'chisle-hooks');
-  const hookFile = path.join(root, 'hooks', 'chisle.json');
+  const hooksDir = path.join(root, 'h3w-hooks');
+  const hookFile = path.join(root, 'hooks', 'h3w.json');
 
   if (opts.dryRun) {
-    note('  would write chisle ruleset to ' + rules);
+    note('  would write h3w ruleset to ' + rules);
     note('  would copy compressor to ' + hooksDir);
     note('  would write postToolUse hook ' + hookFile);
     results.installed.push('copilot-cli');
@@ -644,14 +644,14 @@ function installCopilotCli(ctx) {
   try {
     const st = writeFencedRuleset(rules, opts, note);
     fs.mkdirSync(hooksDir, { recursive: true });
-    for (const f of ['chisle-compress-output.js', 'chisle-config.js']) {
+    for (const f of ['h3w-compress-output.js', 'h3w-config.js']) {
       fs.copyFileSync(path.join(REPO_ROOT, 'hooks', f), path.join(hooksDir, f));
     }
     fs.writeFileSync(path.join(hooksDir, 'package.json'), '{ "type": "commonjs" }\n');
     const hookExisted = fs.existsSync(hookFile);
     if (!hookExisted || opts.force) {
       fs.mkdirSync(path.dirname(hookFile), { recursive: true });
-      fs.writeFileSync(hookFile, copilotHookConfig(path.join(hooksDir, 'chisle-compress-output.js')), { mode: 0o644 });
+      fs.writeFileSync(hookFile, copilotHookConfig(path.join(hooksDir, 'h3w-compress-output.js')), { mode: 0o644 });
       process.stdout.write('  installed: ' + hookFile + '\n');
     }
     if (st === 'installed' || !hookExisted) results.installed.push('copilot-cli');
@@ -662,9 +662,9 @@ function installCopilotCli(ctx) {
 
 // ── Hermes ──────────────────────────────────────────────────────────
 // Agent-Skills host: bundled skills land verbatim in ~/.hermes/skills, where
-// Hermes discovers them as /chisle slash commands. No ruleset is injected:
+// Hermes discovers them as /h3w slash commands. No ruleset is injected:
 // Hermes already reads project AGENTS.md, which carries the always-on axis
-// when the repo ships it. Portable: honors CHISLE_HOME, no hardcoded paths.
+// when the repo ships it. Portable: honors H3W_HOME, no hardcoded paths.
 function installHermes(ctx) {
   const { say, opts, results } = ctx;
   results.detected++;
@@ -714,7 +714,7 @@ function installProjectRule(ctx, prov) {
 // ── uninstall ───────────────────────────────────────────────────────────────
 function uninstall(ctx) {
   const { say, note, warn, opts, c } = ctx;
-  say(c.orange('Chisle uninstall'));
+  say(c.orange('h3w uninstall'));
   let touched = 0;
 
   const wants = id => !opts.only.length || opts.only.includes(id);
@@ -723,8 +723,8 @@ function uninstall(ctx) {
     // Claude plugin
     if (hasCmd('claude') && !opts.dryRun) {
       const r = capture('claude', ['plugin', 'list']);
-      if (r.status === 0 && /chisle/i.test(r.stdout || '')) {
-        run('claude', ['plugin', 'uninstall', 'chisle@chisle'], opts.dryRun); touched++;
+      if (r.status === 0 && /h3w/i.test(r.stdout || '')) {
+        run('claude', ['plugin', 'uninstall', 'h3w@h3w'], opts.dryRun); touched++;
       }
     }
 
@@ -733,28 +733,28 @@ function uninstall(ctx) {
     const settingsPath = path.join(cfg, 'settings.json');
     const settings = SETTINGS.readSettings(settingsPath);
     if (settings) {
-      const removed = SETTINGS.removeHooks(settings, 'chisle-');
+      const removed = SETTINGS.removeHooks(settings, 'h3w-');
       let slRemoved = false;
       if (settings.statusLine && typeof settings.statusLine.command === 'string'
-          && settings.statusLine.command.includes('chisle-statusline')) { delete settings.statusLine; slRemoved = true; }
+          && settings.statusLine.command.includes('h3w-statusline')) { delete settings.statusLine; slRemoved = true; }
       if (removed > 0 || slRemoved) {
         if (!opts.dryRun) { SETTINGS.validateHookFields(settings); SETTINGS.writeSettings(settingsPath, settings); }
         note(`  removed ${removed} hook entr${removed === 1 ? 'y' : 'ies'}${slRemoved ? ' + statusline' : ''} from settings.json`);
         touched++;
       }
     }
-    // Tool schemas denied by `npx chisle tools trim`: remove exactly those entries.
+    // Tool schemas denied by `npx github:MichaelNguyen5653/h3w tools trim`: remove exactly those entries.
     try {
       const restored = TOOLS.restore(cfg, { dryRun: opts.dryRun });
-      if (restored.length) { note(`  removed tool deny entries added by chisle: ${restored.join(', ')}`); touched++; }
+      if (restored.length) { note(`  removed tool deny entries added by h3w: ${restored.join(', ')}`); touched++; }
     } catch (e) { warn('  ' + e.message); }
-    for (const d of ['chisle-hooks', 'chisle-spill']) {
+    for (const d of ['h3w-hooks', 'h3w-spill']) {
       const dst = path.join(cfg, d);
       if (fs.existsSync(dst)) { if (!opts.dryRun) fs.rmSync(dst, { recursive: true, force: true }); note(`  removed ${dst}`); touched++; }
     }
 
-    for (const f of ['.chisle-active', '.chisle-session-turns', '.chisle-statusline-suffix',
-                     '.chisle-compress-stats.json', '.chisle-compress-last.json', '.chisle-update-check.json']) {
+    for (const f of ['.h3w-active', '.h3w-session-turns', '.h3w-statusline-suffix',
+                     '.h3w-compress-stats.json', '.h3w-compress-last.json', '.h3w-update-check.json']) {
       const p = path.join(cfg, f);
       if (fs.existsSync(p)) { if (!opts.dryRun) { try { fs.unlinkSync(p); } catch (_) {} } note(`  removed ${p}`); touched++; }
     }
@@ -774,7 +774,7 @@ function uninstall(ctx) {
       if (txt.includes(FENCE_BEGIN)) {
         const stripped = txt.replace(new RegExp(`\\n?${FENCE_BEGIN}[\\s\\S]*?${FENCE_END}\\n?`), '\n').replace(/\n{3,}/g, '\n\n');
         if (!opts.dryRun) fs.writeFileSync(codexMd, stripped, { mode: 0o644 });
-        note(`  removed chisle block from ${codexMd}`); touched++;
+        note(`  removed h3w block from ${codexMd}`); touched++;
       }
     }
   }
@@ -788,24 +788,24 @@ function uninstall(ctx) {
       const b = txt.indexOf(FENCE_BEGIN);
       const e = b === -1 ? -1 : txt.indexOf(FENCE_END, b);
       if (b !== -1 && e === -1) {
-        note('  ' + ocMd + ' has a chisle-begin marker with no chisle-end; leaving it alone');
+        note('  ' + ocMd + ' has a h3w-begin marker with no h3w-end; leaving it alone');
       } else if (b !== -1) {
         const tail = txt.slice(e + FENCE_END.length).replace(/^\n/, '');
         const stripped = (txt.slice(0, b) + tail).replace(/\n{3,}/g, '\n\n');
         if (!opts.dryRun) fs.writeFileSync(ocMd, stripped, { mode: 0o644 });
-        note('  removed chisle block from ' + ocMd); touched++;
+        note('  removed h3w block from ' + ocMd); touched++;
       }
     }
     const ocSkills = path.join(ocRoot, 'skills');
     const ocGone = opts.dryRun ? ownedSkillNames().filter(function (nm) { return fs.existsSync(path.join(ocSkills, nm)); }).length : pruneSkills(ocSkills);
-    if (ocGone > 0) { note('  removed ' + ocGone + ' chisle skill dir(s) from ' + ocSkills); touched++; }
+    if (ocGone > 0) { note('  removed ' + ocGone + ' h3w skill dir(s) from ' + ocSkills); touched++; }
 
     const ocPlugins = path.join(ocRoot, 'plugins');
-    for (const rel of ['chisle.js', 'chisle-hooks', 'chisle']) {
+    for (const rel of ['h3w.js', 'h3w-hooks', 'h3w']) {
       const dst = path.join(ocPlugins, rel);
       if (fs.existsSync(dst)) { if (!opts.dryRun) fs.rmSync(dst, { recursive: true, force: true }); note('  removed ' + dst); touched++; }
     }
-    for (const f of ['chisle-spill', 'chisle-dedup', '.chisle-compress-stats.json', '.chisle-compress-last.json']) {
+    for (const f of ['h3w-spill', 'h3w-dedup', '.h3w-compress-stats.json', '.h3w-compress-last.json']) {
       const p = path.join(ocState, f);
       if (fs.existsSync(p)) { if (!opts.dryRun) fs.rmSync(p, { recursive: true, force: true }); note('  removed ' + p); touched++; }
     }
@@ -814,7 +814,7 @@ function uninstall(ctx) {
   if (wants('hermes')) {
     const hSkills = path.join(homeDir(), '.hermes', 'skills');
     const hGone = opts.dryRun ? ownedSkillNames().filter(function (nm) { return fs.existsSync(path.join(hSkills, nm)); }).length : pruneSkills(hSkills);
-    if (hGone > 0) { note('  removed ' + hGone + ' chisle skill dir(s) from ' + hSkills); touched++; }
+    if (hGone > 0) { note('  removed ' + hGone + ' h3w skill dir(s) from ' + hSkills); touched++; }
   }
 
   if (wants('copilot-cli')) {
@@ -828,21 +828,21 @@ function uninstall(ctx) {
         const tail = txt.slice(e + FENCE_END.length).replace(/^\n/, '');
         const stripped = (txt.slice(0, b) + tail).replace(/\n{3,}/g, '\n\n').replace(/\n{2,}$/, '\n');
         if (!opts.dryRun) fs.writeFileSync(cpMd, stripped, { mode: 0o644 });
-        note('  removed chisle block from ' + cpMd); touched++;
+        note('  removed h3w block from ' + cpMd); touched++;
       }
     }
-    for (const rel of [path.join('hooks', 'chisle.json'), 'chisle-hooks', 'chisle-spill', 'chisle-dedup',
-                       '.chisle-compress-stats.json']) {
+    for (const rel of [path.join('hooks', 'h3w.json'), 'h3w-hooks', 'h3w-spill', 'h3w-dedup',
+                       '.h3w-compress-stats.json']) {
       const p = path.join(cpRoot, rel);
       if (fs.existsSync(p)) { if (!opts.dryRun) fs.rmSync(p, { recursive: true, force: true }); note('  removed ' + p); touched++; }
     }
   }
 
-  // MCP servers routed through the proxy by `npx chisle mcp wrap`: restore
+  // MCP servers routed through the proxy by `npx github:MichaelNguyen5653/h3w mcp wrap`: restore
   // their original commands before anything else could remove the proxy.
   if (!opts.only.length) {
     const r = MCP.run(['unwrap'].concat(opts.dryRun ? ['--dry-run'] : []), () => {});
-    if (r.changed) { note('  restored ' + r.changed + ' MCP server command(s) wrapped by `chisle mcp wrap`'); touched++; }
+    if (r.changed) { note('  restored ' + r.changed + ' MCP server command(s) wrapped by `h3w mcp wrap`'); touched++; }
     const pd = MCP.proxyDir();
     if (fs.existsSync(pd)) { if (!opts.dryRun) fs.rmSync(pd, { recursive: true, force: true }); note('  removed ' + pd); touched++; }
   }
@@ -857,19 +857,19 @@ function uninstall(ctx) {
 
 // ── help / banner ───────────────────────────────────────────────────────────
 function printHelp(c) {
-  process.stdout.write(`${c.orange('chisle')}: maximum-efficiency dev mode installer
+  process.stdout.write(`${c.orange('h3w')}: maximum-efficiency dev mode installer
 
 Usage:
-  npx chisle [flags]
+  npx github:MichaelNguyen5653/h3w [flags]
 
 Flags:
   --list           Detect agents and print them; install nothing
   --stats          Print tool-output savings recorded so far; change nothing
-  --update         Refresh every agent that already has Chisle; install none
+  --update         Refresh every agent that already has h3w; install none
   --only <id>      Limit install/uninstall to one agent (repeatable)
   --dry-run        Print actions, change nothing
   --force          Reinstall / overwrite even if already present
-  --uninstall, -u  Remove what chisle installed (also restores wrapped MCP servers)
+  --uninstall, -u  Remove what h3w installed (also restores wrapped MCP servers)
   --config-dir <p> Override Claude config dir (default: $CLAUDE_CONFIG_DIR or ~/.claude)
   --no-color       Disable ANSI color
   --help, -h       This help
@@ -877,24 +877,24 @@ Flags:
 Agents: ${PROVIDERS.map(p => p.id).join(', ')}
 
 MCP output compression (opt-in, any agent that launches stdio MCP servers):
-  npx chisle mcp wrap   [--only <id>] [--file <mcp.json>] [--dry-run]
-  npx chisle mcp unwrap [--only <id>] [--file <mcp.json>] [--dry-run]
-  npx chisle mcp status
+  npx github:MichaelNguyen5653/h3w mcp wrap   [--only <id>] [--file <mcp.json>] [--dry-run]
+  npx github:MichaelNguyen5653/h3w mcp unwrap [--only <id>] [--file <mcp.json>] [--dry-run]
+  npx github:MichaelNguyen5653/h3w mcp status
   Targets: ${[...new Set(MCP.targets().map(t => t.id))].join(', ')}. Never Claude Code
   (its own hook already compresses MCP output).
 
 Tool schemas (Claude Code; every request carries every loaded tool's schema):
-  npx chisle tools            # schema size vs. your own calls, last 30 days
-  npx chisle tools trim       # deny the heavy tools you have not used [--days N] [--dry-run]
-  npx chisle tools restore    # remove exactly what trim added
+  npx github:MichaelNguyen5653/h3w tools            # schema size vs. your own calls, last 30 days
+  npx github:MichaelNguyen5653/h3w tools trim       # deny the heavy tools you have not used [--days N] [--dry-run]
+  npx github:MichaelNguyen5653/h3w tools restore    # remove exactly what trim added
 
 Examples:
-  npx chisle                  # auto-detect + install
-  npx chisle --only claude    # just Claude Code
-  npx chisle --dry-run        # preview
-  npx chisle --stats          # what the compressor has saved
-  npx chisle mcp wrap         # compress MCP tool output in Cursor, Codex, Gemini, ...
-  npx chisle@latest --update  # upgrade what is already installed
+  npx github:MichaelNguyen5653/h3w                  # auto-detect + install
+  npx github:MichaelNguyen5653/h3w --only claude    # just Claude Code
+  npx github:MichaelNguyen5653/h3w --dry-run        # preview
+  npx github:MichaelNguyen5653/h3w --stats          # what the compressor has saved
+  npx github:MichaelNguyen5653/h3w mcp wrap         # compress MCP tool output in Cursor, Codex, Gemini, ...
+  npx github:MichaelNguyen5653/h3w --update  # upgrade what is already installed
 `);
 }
 
@@ -909,8 +909,8 @@ function printStats(c, opts) {
   const dir = only === 'opencode' ? opencodeStateDir()
     : only === 'copilot-cli' ? copilotDir()
     : claudeDir(opts);
-  const p = path.join(dir, '.chisle-compress-stats.json');
-  process.stdout.write(c.orange('chisle') + ': tool-output savings\n\n');
+  const p = path.join(dir, '.h3w-compress-stats.json');
+  process.stdout.write(c.orange('h3w') + ': tool-output savings\n\n');
 
   let stats = null;
   try {
@@ -924,7 +924,7 @@ function printStats(c, opts) {
     process.stdout.write('  no compression recorded yet\n\n');
     process.stdout.write(c.dim(`  ledger: ${p}\n`));
     process.stdout.write(c.dim('  it fills as the compressor elides oversized tool output.\n'));
-    process.stdout.write(c.dim("  nothing there after real use? check `npx chisle --list` and that Chisle is active.\n"));
+    process.stdout.write(c.dim("  nothing there after real use? check `npx github:MichaelNguyen5653/h3w --list` and that h3w is active.\n"));
     return;
   }
 
@@ -941,14 +941,14 @@ function printStats(c, opts) {
 }
 
 function printList(c) {
-  process.stdout.write(c.orange('chisle') + ': detected agents:\n\n');
+  process.stdout.write(c.orange('h3w') + ': detected agents:\n\n');
   for (const p of PROVIDERS) {
     const found = providerDetected(p);
     const mark = found ? c.green('✓') : c.dim('·');
     const scope = p.scope === 'project' ? c.dim(' (project-scoped)') : '';
     process.stdout.write(`  ${mark} ${p.label}${scope}\n`);
   }
-  process.stdout.write('\nRun ' + c.orange('npx chisle') + ' to install for the detected (✓) agents.\n');
+  process.stdout.write('\nRun ' + c.orange('npx github:MichaelNguyen5653/h3w') + ' to install for the detected (✓) agents.\n');
 }
 
 // ── main ────────────────────────────────────────────────────────────────────
@@ -975,7 +975,7 @@ function main() {
 
   if (opts.uninstall) return uninstall(ctx);
 
-  say(c.orange(opts.update ? '╭─ Chisle updater ─╮' : '╭─ Chisle installer ─╮'));
+  say(c.orange(opts.update ? '╭─ h3w updater ─╮' : '╭─ h3w installer ─╮'));
   say(c.dim(opts.dryRun ? '  (dry run, nothing will change)' : '  maximum signal, minimum noise'));
   say('');
 
@@ -983,14 +983,14 @@ function main() {
   if (opts.update) targets = targets.filter(p => installedFor(p.id, opts));
   if (targets.length === 0) {
     if (opts.update) {
-      warn('Nothing to update: Chisle is not installed for any detected agent.');
-      note('Run `npx chisle` to install it, or `npx chisle --list` to see what we look for.');
+      warn('Nothing to update: h3w is not installed for any detected agent.');
+      note('Run `npx github:MichaelNguyen5653/h3w` to install it, or `npx github:MichaelNguyen5653/h3w --list` to see what we look for.');
       note('Project-scoped agents (Cursor, Windsurf, Cline, Kiro, Copilot, Antigravity) are per-repo:');
       note('run this from the project that has the rule file.');
       return;
     }
     warn('No supported agents detected.');
-    note('Run `npx chisle --list` to see what we look for, or `--only <id>` to force one.');
+    note('Run `npx github:MichaelNguyen5653/h3w --list` to see what we look for, or `--only <id>` to force one.');
     return;
   }
 
@@ -1013,8 +1013,8 @@ function main() {
   if (results.failed.length)    say(c.red(`  failed:    ${results.failed.map(s => s[0] + ' (' + s[1] + ')').join(', ')}`));
   say('');
   if (!opts.dryRun && results.installed.length) {
-    say(c.orange('Done.') + ' Restart your agent. Type ' + c.orange('/chisle') + ' in Claude Code or Pi, or just start coding.');
-    note('If Chisle earns its keep, a star helps others find it: https://github.com/JayPokale/Chisle');
+    say(c.orange('Done.') + ' Restart your agent. Type ' + c.orange('/h3w') + ' in Claude Code or Pi, or just start coding.');
+    note('If h3w earns its keep, a star helps others find it: https://github.com/MichaelNguyen5653/h3w');
   }
   process.exit(results.failed.length ? 1 : 0);
 }

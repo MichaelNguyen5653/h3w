@@ -1,25 +1,25 @@
 #!/usr/bin/env node
-// chisle — UserPromptSubmit hook
-// Handles /chisle commands, natural language activation/deactivation, and
+// h3w — UserPromptSubmit hook
+// Handles /h3w commands, natural language activation/deactivation, and
 // per-turn reinforcement.
 
 const fs = require('fs');
 const path = require('path');
-const { getClaudeDir, safeWriteFlag, readFlag, resolveSections } = require('./chisle-config');
-const { requestedMode } = require('./chisle-mode');
+const { getClaudeDir, safeWriteFlag, readFlag, resolveSections } = require('./h3w-config');
+const { requestedMode } = require('./h3w-mode');
 
 // Per-turn reinforcement clauses. `Code/commits/security: write normal.` is
 // the Boundaries carve-out (always-on in SKILL.md) and ships regardless of
 // `sections`; the prose/code clauses honor it the same way the SessionStart
 // ruleset does.
-const PROSE_CLAUSE = 'Prose: drop articles/filler/pleasantries/hedging. Fragments OK.';
+const PROSE_CLAUSE = 'Prose: drop articles/filler/pleasantries/hedging. Fragments OK. Recommendation: 1-2 lines. Caveats: "Topic: state. Consequence." Close: "Next: A, B. Proceed?" Steps, security warnings: full.';
 const CODE_CLAUSE = 'Code: YAGNI ladder first (reuse → stdlib → native → dep → one line → min code).';
 const BOUNDARIES_CLAUSE = 'Code/commits/security: write normal.';
 
 function reinforcementLine(sections) {
   const prose = sections ? sections.prose !== false : true;
   const code = sections ? sections.code !== false : true;
-  const parts = ['CHISLE ACTIVE.'];
+  const parts = ['H3W ACTIVE.'];
   if (prose) parts.push(PROSE_CLAUSE);
   if (code) parts.push(CODE_CLAUSE);
   parts.push(BOUNDARIES_CLAUSE);
@@ -53,7 +53,7 @@ function resumeWarning(transcriptPath, now = Date.now()) {
       if (!(idle > RESUME_IDLE_MS) || context < RESUME_MIN_CONTEXT) return null;
       const mins = Math.round(idle / 60000);
       const gap = mins < 120 ? `${mins} min` : mins < 2880 ? `${Math.round(mins / 60)} h` : `${Math.round(mins / 1440)} days`;
-      return `chisle: ${gap} idle, so the prompt cache has expired. This turn re-sends the whole ` +
+      return `h3w: ${gap} idle, so the prompt cache has expired. This turn re-sends the whole ` +
         `~${Math.round(context / 1000)}k-token context and every later turn re-reads it. ` +
         'Run /compact to continue from a summary, or /clear if this is a new task.';
     }
@@ -62,7 +62,7 @@ function resumeWarning(transcriptPath, now = Date.now()) {
 }
 
 const claudeDir = getClaudeDir();
-const flagPath = path.join(claudeDir, '.chisle-active');
+const flagPath = path.join(claudeDir, '.h3w-active');
 
 let input = '';
 process.stdin.on('data', chunk => { input += chunk; });
@@ -81,7 +81,7 @@ process.stdin.on('end', () => {
     // Per-turn reinforcement
     const activeMode = readFlag(flagPath);
     if (activeMode && activeMode !== 'off') {
-      // Inject compact reminder — keeps chisle visible across context compression
+      // Inject compact reminder — keeps h3w visible across context compression
       const out = {
         hookSpecificOutput: {
           hookEventName: 'UserPromptSubmit',

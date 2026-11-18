@@ -1,5 +1,6 @@
 {
-  "name": "chisle",
+  "name": "h3w",
+  "private": true,
   "version": "3.12.1",
   "description": "Fewer tokens than caveman and ponytail, no accuracy lost. Zero-fluff prose, YAGNI-first code, and safe tool-output compression for 13 AI coding agents.",
   "keywords": [
@@ -42,16 +43,16 @@
       "url": "https://openai.com/codex/"
     }
   ],
-  "homepage": "https://chisle.jaypokale.me",
+  "homepage": "https://github.com/MichaelNguyen5653/h3w",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/JayPokale/Chisle.git"
+    "url": "git+https://github.com/MichaelNguyen5653/h3w.git"
   },
   "bugs": {
-    "url": "https://github.com/JayPokale/Chisle/issues"
+    "url": "https://github.com/MichaelNguyen5653/h3w/issues"
   },
   "bin": {
-    "chisle": "bin/install.js"
+    "h3w": "bin/install.js"
   },
   "engines": {
     "node": ">=18"

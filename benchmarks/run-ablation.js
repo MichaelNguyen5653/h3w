@@ -12,8 +12,8 @@
 //   arm: vanilla | name=path/to/SKILL.md   (frontmatter is stripped)
 //   MODEL=claude-sonnet-5-5 picks the model (default Haiku 4.5).
 // Example, old vs new ruleset:
-//   git show v3.8.1:skills/chisle/SKILL.md > /tmp/old.md
-//   node benchmarks/run-ablation.js results/raw-x 2 4 vanilla chisle-3.8.1=/tmp/old.md chisle=skills/chisle/SKILL.md
+//   git show v3.8.1:skills/h3w/SKILL.md > /tmp/old.md
+//   node benchmarks/run-ablation.js results/raw-x 2 4 vanilla chisle-3.8.1=/tmp/old.md chisle=skills/h3w/SKILL.md
 // Resumable: a cell whose JSON exists is skipped. Score with the README's
 // method (pooled ratio of sums vs vanilla) over <out-dir>/*/.
 

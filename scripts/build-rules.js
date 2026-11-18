@@ -13,8 +13,8 @@ const ROOT = path.join(__dirname, '..');
 
 // The canonical rule body for the per-agent copies. Edit HERE, then
 // `node scripts/build-rules.js`. NOTE: this is a condensed manual mirror of
-// skills/chisle/SKILL.md — editing SKILL.md alone does NOT propagate here.
-const BODY = `Chisle: maximum-efficiency dev mode. Two compressions, always active together.
+// skills/h3w/SKILL.md — editing SKILL.md alone does NOT propagate here.
+const BODY = `h3w: maximum-efficiency dev mode. Two compressions, always active together.
 
 **Prose:** Default to fragments. Drop articles, filler (just/really/basically/
 actually), pleasantries (sure/certainly/happy to), hedging, linking verbs where
@@ -55,25 +55,25 @@ you're about to edit: diet trims transport, not understanding.
 **Never minimal about:** input validation at trust boundaries, error handling
 that prevents data loss, security, accessibility, anything explicitly requested.
 
-Always on once installed. Deactivate: "stop chisle" / "normal mode".`;
+Always on once installed. Deactivate: "stop h3w" / "normal mode".`;
 
 // target file → frontmatter (or '' for none)
 const TARGETS = {
-  '.cursor/rules/chisle.mdc':
-    '---\ndescription: Chisle, zero-fluff prose + YAGNI-first code\nalwaysApply: true\n---\n\n',
-  '.windsurf/rules/chisle.md':
+  '.cursor/rules/h3w.mdc':
+    '---\ndescription: h3w, zero-fluff prose + YAGNI-first code\nalwaysApply: true\n---\n\n',
+  '.windsurf/rules/h3w.md':
     '---\ntrigger: always_on\n---\n\n',
-  '.clinerules/chisle.md': '',
-  '.kiro/steering/chisle.md':
+  '.clinerules/h3w.md': '',
+  '.kiro/steering/h3w.md':
     '---\ninclusion: always\n---\n\n',
   '.github/copilot-instructions.md': '',
   // Antigravity: workspace rules need a `trigger`; legacy .agent/rules also loads.
-  '.agents/rules/chisle.md':
-    '---\ntrigger: always_on\ndescription: Chisle, zero-fluff prose + YAGNI-first code\n---\n\n',
+  '.agents/rules/h3w.md':
+    '---\ntrigger: always_on\ndescription: h3w, zero-fluff prose + YAGNI-first code\n---\n\n',
 };
 
 function render(frontmatter) {
-  return frontmatter + '# Chisle\n\n' + BODY + '\n';
+  return frontmatter + '# h3w\n\n' + BODY + '\n';
 }
 
 function main() {

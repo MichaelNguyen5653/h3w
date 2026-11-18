@@ -1,11 +1,11 @@
-// chisle — `npx chisle mcp <wrap|unwrap|status>`: route stdio MCP servers
-// through hooks/chisle-mcp-proxy.js so their oversized tool results get the
+// h3w — `npx github:MichaelNguyen5653/h3w mcp <wrap|unwrap|status>`: route stdio MCP servers
+// through hooks/h3w-mcp-proxy.js so their oversized tool results get the
 // same compression Claude Code and Pi get from PostToolUse.
 //
 // Opt-in, because it rewrites other tools' config files:
 //   - strict JSON only: a file with comments is reported and left alone,
 //     since rewriting it would drop them
-//   - first write of each file keeps a `<file>.chisle-bak` copy
+//   - first write of each file keeps a `<file>.h3w-bak` copy
 //   - only stdio entries (`command`) are wrapped; url/http servers untouched
 //   - wrapped form is reversible from the args alone, no extra keys a host
 //     schema might reject: { command: "node", args: [proxy, "--", cmd, ...args] }
@@ -19,13 +19,13 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { getConfigDir } = require('../../hooks/chisle-config');
+const { getConfigDir } = require('../../hooks/h3w-config');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const PROXY_FILE = 'chisle-mcp-proxy.js';
-const PROXY_SOURCES = ['chisle-mcp-proxy.js', 'chisle-compress-output.js', 'chisle-config.js'];
+const PROXY_FILE = 'h3w-mcp-proxy.js';
+const PROXY_SOURCES = ['h3w-mcp-proxy.js', 'h3w-compress-output.js', 'h3w-config.js'];
 
-function home() { return process.env.CHISLE_HOME || os.homedir(); }
+function home() { return process.env.H3W_HOME || os.homedir(); }
 function proxyDir() { return path.join(getConfigDir(), 'mcp-proxy'); }
 
 // VS Code-family user dirs, for Cline's global MCP settings.
@@ -101,11 +101,11 @@ function writeConfig(file, raw, data) {
 }
 
 function writeText(file, raw, text) {
-  const bak = file + '.chisle-bak';
+  const bak = file + '.h3w-bak';
   if (!fs.existsSync(bak)) fs.writeFileSync(bak, raw, { mode: 0o600 });
   let mode = 0o600;
   try { mode = fs.statSync(file).mode & 0o777; } catch (e) {}
-  const tmp = file + '.chisle-tmp-' + process.pid;
+  const tmp = file + '.h3w-tmp-' + process.pid;
   fs.writeFileSync(tmp, text, { mode });
   fs.renameSync(tmp, file);
 }
@@ -206,7 +206,7 @@ function parse(argv) {
     else if (a === '--no-color' || a === '--') continue;
     else throw new Error('unknown option: ' + a);
   }
-  if (!['wrap', 'unwrap', 'status'].includes(o.action)) throw new Error('usage: npx chisle mcp <wrap|unwrap|status> [--only <agent>] [--file <mcp.json>] [--dry-run]');
+  if (!['wrap', 'unwrap', 'status'].includes(o.action)) throw new Error('usage: npx github:MichaelNguyen5653/h3w mcp <wrap|unwrap|status> [--only <agent>] [--file <mcp.json>] [--dry-run]');
   return o;
 }
 
@@ -251,9 +251,9 @@ function run(argv, out) {
 
   if (!found) out('  no MCP config files found' + (o.only.length ? ' for ' + o.only.join(', ') : ''));
   if (o.action === 'status') {
-    const dir = process.env.CHISLE_STATE_DIR || getConfigDir();
+    const dir = process.env.H3W_STATE_DIR || getConfigDir();
     let stats = null;
-    try { stats = JSON.parse(fs.readFileSync(path.join(dir, '.chisle-compress-stats.json'), 'utf8')); } catch (e) {}
+    try { stats = JSON.parse(fs.readFileSync(path.join(dir, '.h3w-compress-stats.json'), 'utf8')); } catch (e) {}
     out('\n  saved so far: ' + (stats && Number.isFinite(stats.savedChars)
       ? stats.savedChars.toLocaleString('en-US') + ' chars over ' + stats.events + ' tool result(s)'
       : 'nothing yet') + '  (' + dir + ')');

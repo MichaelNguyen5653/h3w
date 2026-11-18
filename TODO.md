@@ -1,4 +1,4 @@
-# 🧨 Chisle TODO / Roadmap
+# 🧨 h3w TODO / Roadmap
 
 Ideas not yet shipped. Same rule as the code: nothing lands without receipts.
 
@@ -6,7 +6,7 @@ Ideas not yet shipped. Same rule as the code: nothing lands without receipts.
 
 ## Tool-output compression (a second axis)
 
-**Status:** ✅ shipped 2026-07-07 (`hooks/chisle-compress-output.js`, v0.2.0)
+**Status:** ✅ shipped 2026-07-07 (`hooks/h3w-compress-output.js`, v0.2.0)
 
 PostToolUse hook that mechanically shrinks oversized tool results before the
 model sees them: head + tail kept, middle elided, error-looking lines salvaged
@@ -25,19 +25,19 @@ Answers to the ship-gating questions (receipts:
       so compression is allowlist-only (Bash/Agent/WebFetch/WebSearch/Grep/Glob/
       `mcp__*`), never Read/Edit/Write; (2) the one error line in a 3000-line
       log can live in the middle, so the salvage regex rescues up to 12 error-like
-      lines from the cut. Kill switch: `CHISLE_COMPRESS=0`.
-- [x] **Track the `/chisle` mode?** Yes, with one 8k threshold, env-overridable;
-      `off` (and "stop chisle") disables entirely.
-- [x] **Savings ledger?** `<claudeDir>/.chisle-compress-stats.json`, measured chars
+      lines from the cut. Kill switch: `H3W_COMPRESS=0`.
+- [x] **Track the `/h3w` mode?** Yes, with one 8k threshold, env-overridable;
+      `off` (and "stop h3w") disables entirely.
+- [x] **Savings ledger?** `<claudeDir>/.h3w-compress-stats.json`, measured chars
       (real baseline exists, unlike output-side), rendered by both statuslines.
 
 Still open:
 
 - [x] **Pi portability.** Pi's `tool_result` rewrite event now carries both axes,
-      `/chisle`, and the status badge. Marginal replay after Pi's native
+      `/h3w`, and the status badge. Marginal replay after Pi's native
       truncation saved 27.4% of persisted tool-output chars. Cursor / Windsurf /
       Cline / Codex still lack a post-tool rewrite hook; Context Diet remains
-      their prevention layer, and `chisle mcp wrap` (2026-10-16) covers their
+      their prevention layer, and `h3w mcp wrap` (2026-10-16) covers their
       MCP output. Copilot CLI got the hook wiring the same day.
 - [ ] Codex shell output: `PostToolUse` can replace a result but the hook
       payload lacks the exit-code header, so replacing would hide failures.
@@ -53,16 +53,16 @@ Still open:
 
 ## Open from 2026-10-01
 
-- [ ] **Agent loops cost more with Chisle.** Six fixtures x 6 seeds: context
+- [ ] **Agent loops cost more with h3w.** Six fixtures x 6 seeds: context
       +16% (95% CI +1% to +34%), cost +6.8% (CI -1% to +15%), pass rate tied.
       Easy fixtures show the clean part: ~+4%, the ~900-token ruleset times
       ~5 requests. Diagnose the rest with the tool-call logs the runner now
-      records: `ARMS=vanilla,chisle FIXTURES=noisylog,dupepaths,reuse
+      records: `ARMS=vanilla,h3w FIXTURES=noisylog,dupepaths,reuse
       RAW_DIR=benchmarks/agentic/raw-diag node benchmarks/agentic/run.js
       claude-haiku-4-5-20251001 3` resumes the partial run (usage limit hit:
-      vanilla 3/3 per fixture, chisle 1/3). First look: bare also verifies
+      vanilla 3/3 per fixture, h3w 1/3). First look: bare also verifies
       with `| tail -20`, so the context diet is not the obvious culprit;
-      Chisle explored `dupepaths` in more calls (two `ls` + `package.json`
+      h3w explored `dupepaths` in more calls (two `ls` + `package.json`
       vs one `find`).
 - [ ] Decide on a release only after that: the trim, the structure-rule
       propagation and the doc corrections are ready under [Unreleased], but
@@ -76,4 +76,4 @@ Still open:
   sessions before claiming the win.
 - **Session-history distillation.** On `compact`, old tool outputs are pure
   dead weight; a SessionStart(matcher=compact) hook could re-inject only the
-  chisle ruleset instead of letting compaction re-summarize it. Needs measurement.
+  h3w ruleset instead of letting compaction re-summarize it. Needs measurement.

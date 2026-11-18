@@ -25,6 +25,6 @@ jobs:
       - name: Verify README samples are in sync
         run: node scripts/build-samples.js --check
       - name: Lint shell scripts
-        run: bash -n hooks/chisle-statusline.sh && bash -n install.sh
+        run: bash -n hooks/h3w-statusline.sh && bash -n install.sh
       - name: Installer smoke test
         run: node bin/install.js --list && node bin/install.js --help

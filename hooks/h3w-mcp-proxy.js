@@ -1,19 +1,19 @@
 #!/usr/bin/env node
-// chisle — stdio MCP proxy: tool-output compression for any MCP host.
+// h3w — stdio MCP proxy: tool-output compression for any MCP host.
 //
 // Most agents cannot rewrite a tool result from a hook (Windsurf, Cline,
 // Kiro, Gemini, Qwen; Cursor only for MCP), but every one of them launches
 // stdio MCP servers from a command line it does not inspect. Wrapping that
-// command puts Chisle between host and server:
+// command puts h3w between host and server:
 //
-//   node chisle-mcp-proxy.js -- <original command> [args...]
+//   node h3w-mcp-proxy.js -- <original command> [args...]
 //
 // Bytes pass through untouched in both directions, except the JSON-RPC
 // response to a `tools/call` request: its `content[]` text blocks go through
 // the same scrub + elide core as every other harness (head/tail kept, error
 // lines salvaged, full original spilled to disk). Everything else — init,
 // tools/list, notifications, resources, malformed lines — is forwarded
-// byte-identical. `npx chisle mcp wrap` rewrites host configs to use it.
+// byte-identical. `npx github:MichaelNguyen5653/h3w mcp wrap` rewrites host configs to use it.
 //
 // Deliberately absent:
 //   - dedup markers: one server process can outlive a chat and serve the
@@ -23,16 +23,16 @@
 //   - structuredContent: left as-is; hosts that forward it get it unchanged.
 //
 // Never breaks the server: any compressor error forwards the original line.
-// Tunables: CHISLE_COMPRESS=0, CHISLE_DEFAULT_MODE=off, CHISLE_COMPRESS_MAX_CHARS
-// (+ HEAD/TAIL_LINES), CHISLE_COMPRESS_SPILL=0, CHISLE_STATE_DIR (spill + stats,
-// default ~/.config/chisle).
+// Tunables: H3W_COMPRESS=0, H3W_DEFAULT_MODE=off, H3W_COMPRESS_MAX_CHARS
+// (+ HEAD/TAIL_LINES), H3W_COMPRESS_SPILL=0, H3W_STATE_DIR (spill + stats,
+// default ~/.config/h3w).
 
 'use strict';
 
 const cp = require('child_process');
 const { StringDecoder } = require('string_decoder');
-const core = require('./chisle-compress-output');
-const { getDefaultMode, getConfigDir } = require('./chisle-config');
+const core = require('./h3w-compress-output');
+const { getDefaultMode, getConfigDir } = require('./h3w-config');
 
 const IS_WIN = process.platform === 'win32';
 
@@ -46,7 +46,7 @@ function mcpToolAllowed(name) {
 }
 
 function stateDir() {
-  return process.env.CHISLE_STATE_DIR || getConfigDir();
+  return process.env.H3W_STATE_DIR || getConfigDir();
 }
 
 // Compress one tools/call result in place. Returns chars saved (0 = untouched).
@@ -56,7 +56,7 @@ function compressResult(result, toolName) {
   let saved = 0;
   for (const block of result.content) {
     if (!block || block.type !== 'text' || typeof block.text !== 'string') continue;
-    if (block.text.includes('[chisle:')) continue; // already compressed upstream
+    if (block.text.includes('[h3w:')) continue; // already compressed upstream
     const updated = core.transform(block.text, limits, 'mcp-' + toolName, stateDir());
     if (updated != null && updated.length < block.text.length) {
       saved += block.text.length - updated.length;
@@ -131,7 +131,7 @@ function main(argv) {
   const sep = argv.indexOf('--');
   const cmd = sep === -1 ? argv : argv.slice(sep + 1);
   if (!cmd.length) {
-    process.stderr.write('usage: chisle-mcp-proxy -- <command> [args...]\n');
+    process.stderr.write('usage: h3w-mcp-proxy -- <command> [args...]\n');
     process.exit(2);
   }
 
@@ -141,11 +141,11 @@ function main(argv) {
     ? cp.spawn(cmd.map(quoteWin).join(' '), [], { stdio: ['pipe', 'pipe', 'inherit'], shell: true, windowsHide: true })
     : cp.spawn(cmd[0], cmd.slice(1), { stdio: ['pipe', 'pipe', 'inherit'] });
 
-  const enabled = process.env.CHISLE_COMPRESS !== '0' && getDefaultMode() !== 'off';
+  const enabled = process.env.H3W_COMPRESS !== '0' && getDefaultMode() !== 'off';
   const pending = new Map();
 
   child.on('error', (e) => {
-    process.stderr.write('chisle-mcp-proxy: cannot start ' + cmd[0] + ': ' + e.message + '\n');
+    process.stderr.write('h3w-mcp-proxy: cannot start ' + cmd[0] + ': ' + e.message + '\n');
     process.exit(127);
   });
   child.stdin.on('error', () => {}); // server gone; exit handler reports it

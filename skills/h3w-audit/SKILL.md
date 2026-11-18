@@ -1,17 +1,17 @@
 ---
-name: chisle-audit
+name: h3w-audit
 description: >
   One-shot efficiency audit of a file, diff, or whole repo across BOTH axes at
   once: over-engineered code (reinvented stdlib, needless abstractions,
   speculative config) AND bloated prose (verbose comments, padded docstrings,
   redundant doc sections). Neither a pure code-minimizer nor a pure prose
   compressor does both in one pass. That's the point. Ranked report, biggest
-  saving first; changes nothing. Use when the user says "chisle audit", "/chisle-audit",
+  saving first; changes nothing. Use when the user says "h3w audit", "/h3w-audit",
   "audit this for bloat", "what can I cut", "review this PR for over-engineering
   and verbosity".
 ---
 
-# Chisle Audit
+# h3w Audit
 
 Scan the target (a diff, a file, or the repo tree) and report what to cut, on
 both axes. One-shot. Read-only: never edit, never write a flag, never apply fixes.
@@ -42,7 +42,7 @@ both axes. One-shot. Read-only: never edit, never write a flag, never apply fixe
 ## What NOT to flag
 
 Input validation at trust boundaries, error handling that prevents data loss,
-security, accessibility, deliberate `// chisle:` / `// ponytail:` shortcuts already
+security, accessibility, deliberate `// h3w:` / `// ponytail:` shortcuts already
 documented, or domain comments that explain *why* (not *what*).
 
 ## Output

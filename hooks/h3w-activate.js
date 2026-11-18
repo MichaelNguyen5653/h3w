@@ -1,15 +1,15 @@
 #!/usr/bin/env node
-// chisle — SessionStart hook
+// h3w — SessionStart hook
 //
-// 1. Writes flag at $CLAUDE_CONFIG_DIR/.chisle-active
+// 1. Writes flag at $CLAUDE_CONFIG_DIR/.h3w-active
 // 2. Resets session turn counter
-// 3. Emits the chisle ruleset as system context
+// 3. Emits the h3w ruleset as system context
 // 4. Nudges user to configure statusline if missing
 // 5. Major-version update notice (majors only, cached, fail-silent)
 
 const fs = require('fs');
 const path = require('path');
-const { getDefaultMode, getClaudeDir, safeWriteFlag, legacySetting, resolveSections, filterSections } = require('./chisle-config');
+const { getDefaultMode, getClaudeDir, safeWriteFlag, legacySetting, resolveSections, filterSections } = require('./h3w-config');
 
 // ── Update-notice helpers (pure — tested directly) ─────────────────────────
 // Minor/patch releases stay quiet: a nudge per major is signal, more is spam.
@@ -24,8 +24,8 @@ function majorOf(v) {
 function majorUpdateNotice(installed, latest) {
   const i = majorOf(installed), l = majorOf(latest);
   if (i == null || l == null || l <= i) return null;
-  return '\n\nCHISLE UPDATE AVAILABLE: v' + latest + ' (major; you run v' + installed + '). ' +
-    'Mention this to the user once: update with `claude plugin update chisle@chisle` or `npx chisle`.';
+  return '\n\nH3W UPDATE AVAILABLE: v' + latest + ' (major; you run v' + installed + '). ' +
+    'Mention this to the user once: update with `claude plugin update h3w@h3w` or `npx github:MichaelNguyen5653/h3w`.';
 }
 
 function installedVersion() {
@@ -44,7 +44,7 @@ async function latestVersion(cachePath) {
   try {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 1500);
-    const res = await fetch('https://registry.npmjs.org/chisle/latest', { signal: ctrl.signal });
+    const res = await fetch('https://raw.githubusercontent.com/MichaelNguyen5653/h3w/main/package.json', { signal: ctrl.signal });
     clearTimeout(t);
     if (!res.ok) return null;
     const latest = (await res.json()).version;
@@ -66,7 +66,7 @@ const FULL_INJECT_SOURCES = new Set(['startup']);
 // ── Hook body ───────────────────────────────────────────────────────────────
 function run(source) {
   const claudeDir = getClaudeDir();
-  const flagPath = path.join(claudeDir, '.chisle-active');
+  const flagPath = path.join(claudeDir, '.h3w-active');
   const settingsPath = path.join(claudeDir, 'settings.json');
 
   const mode = getDefaultMode();
@@ -83,8 +83,8 @@ function run(source) {
   // 2. Resumed/cleared/compacted session: reactivate, don't re-teach.
   if (!FULL_INJECT_SOURCES.has(source)) {
     process.stdout.write(
-      'CHISLE ACTIVE (resumed). ' +
-      'Ruleset already in context; see the chisle skill if it is not.'
+      'H3W ACTIVE (resumed). ' +
+      'Ruleset already in context; see the h3w skill if it is not.'
     );
     return;
   }
@@ -92,11 +92,11 @@ function run(source) {
   // 3. Read SKILL.md — single source of truth for behaviour. No level
   // filtering any more: there is one mode, so the whole body ships, minus
   // whatever `sections` in config.json opts out of (prose and/or code rules;
-  // config-file only, defaults to both enabled — see chisle-config.js).
+  // config-file only, defaults to both enabled — see h3w-config.js).
   let skillContent = '';
   try {
     skillContent = fs.readFileSync(
-      path.join(__dirname, '..', 'skills', 'chisle', 'SKILL.md'), 'utf8'
+      path.join(__dirname, '..', 'skills', 'h3w', 'SKILL.md'), 'utf8'
     );
   } catch (e) {}
 
@@ -107,20 +107,20 @@ function run(source) {
   let output;
 
   if (skillContent) {
-    output = 'CHISLE ACTIVE\n\n' +
+    output = 'H3W ACTIVE\n\n' +
       filterSections(skillContent.replace(/^---[\s\S]*?---\s*/, ''), sections);
   } else {
     // Fallback ruleset when SKILL.md not found
     const fallbackBody =
-      'Chisle: maximum-efficiency dev mode. Zero-fluff prose. YAGNI-first code.\n\n' +
+      'h3w: maximum-efficiency dev mode. Zero-fluff prose. YAGNI-first code.\n\n' +
       '## Persistence\n\n' +
-      'ACTIVE EVERY RESPONSE. Off only: "stop chisle" / "normal mode".\n\n' +
+      'ACTIVE EVERY RESPONSE. Off only: "stop h3w" / "normal mode".\n\n' +
       '## Prose\n\n' +
       'Drop articles/filler/pleasantries/hedging. Fragments OK. Technical terms exact.\n\n' +
       '## Code\n\n' +
       'Ladder: YAGNI → reuse → stdlib → native → installed dep → one line → min code.\n' +
       'No unrequested abstractions. Deletion over addition. Shortest diff wins.';
-    output = 'CHISLE ACTIVE\n\n' + filterSections(fallbackBody, sections, ['Prose'], ['Code']);
+    output = 'H3W ACTIVE\n\n' + filterSections(fallbackBody, sections, ['Prose'], ['Code']);
   }
 
   // 3. Detect missing statusline config
@@ -133,13 +133,13 @@ function run(source) {
     }
 
     if (!hasStatusline) {
-      const scriptPath = path.join(__dirname, 'chisle-statusline.sh');
+      const scriptPath = path.join(__dirname, 'h3w-statusline.sh');
       const command = `bash "${scriptPath}"`;
       const statusLineSnippet =
         '"statusLine": { "type": "command", "command": ' + JSON.stringify(command) + ' }';
       output += '\n\n' +
-        'STATUSLINE SETUP NEEDED: The chisle plugin includes a statusline badge ' +
-        '([CHISLE]) with token savings. It is not configured yet. ' +
+        'STATUSLINE SETUP NEEDED: The h3w plugin includes a statusline badge ' +
+        '([H3W]) with token savings. It is not configured yet. ' +
         'To enable, add this to ' + settingsPath + ': ' +
         statusLineSnippet + ' ' +
         'Proactively offer to set this up for the user on first interaction.';
@@ -147,23 +147,23 @@ function run(source) {
   } catch (e) {}
 
   // 3b. One-time courtesy for the 3.0.0 upgrade: a lite/full/ultra setting is
-  // no longer meaningful. Chisle still runs (the value falls through to the
+  // no longer meaningful. h3w still runs (the value falls through to the
   // default), but silently ignoring a setting someone chose is worse than
   // saying so once.
   const legacy = legacySetting();
   if (legacy) {
-    output += '\n\nCHISLE NOTE: `' + legacy.value + '` came from ' + legacy.source +
+    output += '\n\nH3W NOTE: `' + legacy.value + '` came from ' + legacy.source +
       '. Intensity levels were removed in 3.0.0 — there is one mode now, and it is ' +
       'active. Set it to `on` or `off`, or drop it entirely. Mention this once.';
   }
 
-  // 4. Update notice, then emit. CHISLE_UPDATE_CHECK=0 disables.
+  // 4. Update notice, then emit. H3W_UPDATE_CHECK=0 disables.
   (async () => {
     try {
-      if (process.env.CHISLE_UPDATE_CHECK !== '0') {
+      if (process.env.H3W_UPDATE_CHECK !== '0') {
         const installed = installedVersion();
         if (installed) {
-          const latest = await latestVersion(path.join(claudeDir, '.chisle-update-check.json'));
+          const latest = await latestVersion(path.join(claudeDir, '.h3w-update-check.json'));
           const notice = majorUpdateNotice(installed, latest);
           if (notice) output += notice;
         }

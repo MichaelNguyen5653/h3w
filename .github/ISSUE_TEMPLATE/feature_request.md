@@ -10,7 +10,7 @@ assignees: ''
 What's annoying or missing today.
 
 **The lazy solution**
-Chisle's whole philosophy is doing less. What's the smallest change that fixes this?
+h3w's whole philosophy is doing less. What's the smallest change that fixes this?
 
 **Alternatives considered**
 Anything you ruled out, and why.

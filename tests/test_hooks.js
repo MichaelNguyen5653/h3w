@@ -8,7 +8,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { VALID_MODES, safeWriteFlag, readFlag, getDefaultMode } = require('../hooks/chisle-config');
+const { VALID_MODES, safeWriteFlag, readFlag, getDefaultMode } = require('../hooks/h3w-config');
 const { symlinkSkip } = require('./fixtures/symlinks');
 
 // ── VALID_MODES ──────────────────────────────────────────────────────────────
@@ -22,24 +22,24 @@ test('VALID_MODES contains on and off', () => {
 // ── safeWriteFlag / readFlag ─────────────────────────────────────────────────
 
 function tmpDir() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-test-'));
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-test-'));
 }
 
 test('safeWriteFlag writes and readFlag reads back', () => {
   const dir = tmpDir();
-  const flagPath = path.join(dir, '.chisle-active');
+  const flagPath = path.join(dir, '.h3w-active');
   safeWriteFlag(flagPath, 'on');
   assert.equal(readFlag(flagPath), 'on');
   fs.rmSync(dir, { recursive: true });
 });
 
 test('readFlag returns null for missing file', () => {
-  assert.equal(readFlag('/tmp/chisle-does-not-exist-xyz'), null);
+  assert.equal(readFlag('/tmp/h3w-does-not-exist-xyz'), null);
 });
 
 test('readFlag returns null for unknown mode', () => {
   const dir = tmpDir();
-  const flagPath = path.join(dir, '.chisle-active');
+  const flagPath = path.join(dir, '.h3w-active');
   fs.writeFileSync(flagPath, 'wenyan-ultra', { mode: 0o600 });
   assert.equal(readFlag(flagPath), null);
   fs.rmSync(dir, { recursive: true });
@@ -47,7 +47,7 @@ test('readFlag returns null for unknown mode', () => {
 
 test('readFlag returns null for symlink', { skip: symlinkSkip }, () => {
   const dir = tmpDir();
-  const flagPath = path.join(dir, '.chisle-active');
+  const flagPath = path.join(dir, '.h3w-active');
   const target = path.join(dir, 'target');
   fs.writeFileSync(target, 'on', { mode: 0o600 });
   fs.symlinkSync(target, flagPath);
@@ -57,7 +57,7 @@ test('readFlag returns null for symlink', { skip: symlinkSkip }, () => {
 
 test('readFlag returns null for oversized file', () => {
   const dir = tmpDir();
-  const flagPath = path.join(dir, '.chisle-active');
+  const flagPath = path.join(dir, '.h3w-active');
   fs.writeFileSync(flagPath, 'on' + 'x'.repeat(100), { mode: 0o600 });
   assert.equal(readFlag(flagPath), null);
   fs.rmSync(dir, { recursive: true });
@@ -65,7 +65,7 @@ test('readFlag returns null for oversized file', () => {
 
 test('safeWriteFlag refuses to overwrite a symlink', { skip: symlinkSkip }, () => {
   const dir = tmpDir();
-  const flagPath = path.join(dir, '.chisle-active');
+  const flagPath = path.join(dir, '.h3w-active');
   const target = path.join(dir, 'target');
   fs.writeFileSync(target, '', { mode: 0o600 });
   fs.symlinkSync(target, flagPath);
@@ -77,32 +77,32 @@ test('safeWriteFlag refuses to overwrite a symlink', { skip: symlinkSkip }, () =
 // ── getDefaultMode ───────────────────────────────────────────────────────────
 
 test('getDefaultMode returns on by default', () => {
-  const saved = process.env.CHISLE_DEFAULT_MODE;
-  delete process.env.CHISLE_DEFAULT_MODE;
+  const saved = process.env.H3W_DEFAULT_MODE;
+  delete process.env.H3W_DEFAULT_MODE;
   // Only validates when no user config file exists (CI / clean env)
   const mode = getDefaultMode();
   assert.ok(VALID_MODES.includes(mode));
-  if (saved !== undefined) process.env.CHISLE_DEFAULT_MODE = saved;
+  if (saved !== undefined) process.env.H3W_DEFAULT_MODE = saved;
 });
 
-test('getDefaultMode respects CHISLE_DEFAULT_MODE env var', () => {
-  process.env.CHISLE_DEFAULT_MODE = 'off';
+test('getDefaultMode respects H3W_DEFAULT_MODE env var', () => {
+  process.env.H3W_DEFAULT_MODE = 'off';
   assert.equal(getDefaultMode(), 'off');
-  process.env.CHISLE_DEFAULT_MODE = 'on';
+  process.env.H3W_DEFAULT_MODE = 'on';
   assert.equal(getDefaultMode(), 'on');
-  delete process.env.CHISLE_DEFAULT_MODE;
+  delete process.env.H3W_DEFAULT_MODE;
 });
 
-test('getDefaultMode ignores invalid CHISLE_DEFAULT_MODE', () => {
-  process.env.CHISLE_DEFAULT_MODE = 'wenyan-ultra';
+test('getDefaultMode ignores invalid H3W_DEFAULT_MODE', () => {
+  process.env.H3W_DEFAULT_MODE = 'wenyan-ultra';
   const mode = getDefaultMode();
   assert.ok(VALID_MODES.includes(mode));
-  delete process.env.CHISLE_DEFAULT_MODE;
+  delete process.env.H3W_DEFAULT_MODE;
 });
 
 // ── major-version update notice ──────────────────────────────────────────────
 
-const { majorOf, majorUpdateNotice } = require('../hooks/chisle-activate');
+const { majorOf, majorUpdateNotice } = require('../hooks/h3w-activate');
 
 test('majorOf parses majors, rejects garbage', () => {
   assert.equal(majorOf('1.1.2'), 1);
@@ -121,7 +121,7 @@ test('notice fires only on a major jump', () => {
   assert.equal(majorUpdateNotice('1.0.0', null), null);     // no registry data: silent
 });
 
-test('requiring chisle-activate has no side effects', () => {
+test('requiring h3w-activate has no side effects', () => {
   // If the require.main guard is broken this test file would have already
   // emitted the ruleset or called process.exit before reaching here.
   assert.ok(true);
@@ -133,14 +133,14 @@ test('requiring chisle-activate has no side effects', () => {
 // most of what the compressor saved.
 
 const { execFileSync } = require('child_process');
-const ACTIVATE = path.join(__dirname, '..', 'hooks', 'chisle-activate.js');
+const ACTIVATE = path.join(__dirname, '..', 'hooks', 'h3w-activate.js');
 
 function activate(stdin, extraEnv = {}) {
   const dir = tmpDir();
   try {
     return execFileSync(process.execPath, [ACTIVATE], {
       input: stdin,
-      env: { ...process.env, CLAUDE_CONFIG_DIR: dir, CHISLE_DEFAULT_MODE: 'on', CHISLE_UPDATE_CHECK: '0', ...extraEnv },
+      env: { ...process.env, CLAUDE_CONFIG_DIR: dir, H3W_DEFAULT_MODE: 'on', H3W_UPDATE_CHECK: '0', ...extraEnv },
       encoding: 'utf8',
       timeout: 5000,
     });
@@ -152,7 +152,7 @@ function activate(stdin, extraEnv = {}) {
 test('REGRESSION #2: startup gets the full ruleset', () => {
   const out = activate(JSON.stringify({ source: 'startup' }));
   assert.ok(out.length > 2000, `expected full ruleset, got ${out.length} chars`);
-  assert.match(out, /CHISLE ACTIVE/);
+  assert.match(out, /H3W ACTIVE/);
 });
 
 test('REGRESSION #2: resume/clear/compact do not re-inject the ruleset', () => {
@@ -160,7 +160,7 @@ test('REGRESSION #2: resume/clear/compact do not re-inject the ruleset', () => {
     const out = activate(JSON.stringify({ source }));
     assert.ok(out.length < 400, `${source} re-injected ${out.length} chars`);
     // still has to announce the mode, or the session silently loses it
-    assert.match(out, /CHISLE ACTIVE/);
+    assert.match(out, /H3W ACTIVE/);
   }
 });
 
@@ -206,28 +206,28 @@ test('the changelog documents the shipped version', () => {
 // A lite/full/ultra setting from before 3.0.0 must not break anything, and must
 // not be ignored in silence either.
 
-const { legacySetting } = require('../hooks/chisle-config');
+const { legacySetting } = require('../hooks/h3w-config');
 
 test('a legacy level setting still resolves to on, not off', () => {
   for (const stale of ['lite', 'full', 'ultra']) {
-    process.env.CHISLE_DEFAULT_MODE = stale;
+    process.env.H3W_DEFAULT_MODE = stale;
     assert.equal(getDefaultMode(), 'on', `${stale} should fall through to on`);
   }
-  delete process.env.CHISLE_DEFAULT_MODE;
+  delete process.env.H3W_DEFAULT_MODE;
 });
 
 test('a legacy level setting is detected so it can be reported', () => {
-  process.env.CHISLE_DEFAULT_MODE = 'ultra';
+  process.env.H3W_DEFAULT_MODE = 'ultra';
   const l = legacySetting();
   assert.equal(l.value, 'ultra');
-  assert.equal(l.source, 'CHISLE_DEFAULT_MODE');
-  delete process.env.CHISLE_DEFAULT_MODE;
+  assert.equal(l.source, 'H3W_DEFAULT_MODE');
+  delete process.env.H3W_DEFAULT_MODE;
 });
 
 test('a current setting reports no legacy value', () => {
-  process.env.CHISLE_DEFAULT_MODE = 'on';
+  process.env.H3W_DEFAULT_MODE = 'on';
   assert.equal(legacySetting(), null);
-  delete process.env.CHISLE_DEFAULT_MODE;
+  delete process.env.H3W_DEFAULT_MODE;
 });
 
 // ── sections config: getSections / filterSections ────────────────────────────
@@ -235,15 +235,15 @@ test('a current setting reports no legacy value', () => {
 // keeping code rules (and vice versa). Config-file only, no env override.
 // Absent/malformed/non-boolean always falls back to enabled; never throws.
 
-const { getSections, filterSections, PROSE_HEADINGS, CODE_HEADINGS } = require('../hooks/chisle-config');
+const { getSections, filterSections, PROSE_HEADINGS, CODE_HEADINGS } = require('../hooks/h3w-config');
 
 function withSectionsConfig(sectionsValue, fn) {
   const dir = tmpDir();
-  const chisleDir = path.join(dir, 'chisle');
-  fs.mkdirSync(chisleDir, { recursive: true });
+  const h3wDir = path.join(dir, 'h3w');
+  fs.mkdirSync(h3wDir, { recursive: true });
   if (sectionsValue !== undefined) {
     fs.writeFileSync(
-      path.join(chisleDir, 'config.json'),
+      path.join(h3wDir, 'config.json'),
       JSON.stringify({ defaultMode: 'on', sections: sectionsValue })
     );
   }
@@ -292,9 +292,9 @@ test('getSections: malformed sections values fall back to enabled, never throw',
 
 test('getSections: malformed config.json (invalid JSON) falls back to enabled, never throws', () => {
   const dir = tmpDir();
-  const chisleDir = path.join(dir, 'chisle');
-  fs.mkdirSync(chisleDir, { recursive: true });
-  fs.writeFileSync(path.join(chisleDir, 'config.json'), '{ not json');
+  const h3wDir = path.join(dir, 'h3w');
+  fs.mkdirSync(h3wDir, { recursive: true });
+  fs.writeFileSync(path.join(h3wDir, 'config.json'), '{ not json');
   const saved = process.env.XDG_CONFIG_HOME;
   process.env.XDG_CONFIG_HOME = dir;
   try {
@@ -307,7 +307,7 @@ test('getSections: malformed config.json (invalid JSON) falls back to enabled, n
 });
 
 const SKILL_BODY = fs.readFileSync(
-  path.join(__dirname, '..', 'skills', 'chisle', 'SKILL.md'), 'utf8'
+  path.join(__dirname, '..', 'skills', 'h3w', 'SKILL.md'), 'utf8'
 ).replace(/^---[\s\S]*?---\s*/, '');
 const ALWAYS_ON_HEADINGS = [
   'Persistence', 'Thinking Is Billed Too', 'Auto-Clarity', 'When NOT to be lazy', 'Boundaries',
@@ -346,7 +346,7 @@ test('filterSections: malformed sections values fall back to enabled (identity)'
 // ── SessionStart end-to-end: sections config wired into the emitted ruleset ──
 
 test('activate: no config file → full ruleset, all headings present (default unchanged)', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-xdg-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-xdg-'));
   try {
     const out = activate(JSON.stringify({ source: 'startup' }), { XDG_CONFIG_HOME: dir });
     for (const h of [...PROSE_HEADINGS, ...CODE_HEADINGS, ...ALWAYS_ON_HEADINGS]) {
@@ -358,10 +358,10 @@ test('activate: no config file → full ruleset, all headings present (default u
 });
 
 test('activate: config file present but no sections key → full ruleset (default unchanged)', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-xdg-'));
-  const chisleDir = path.join(dir, 'chisle');
-  fs.mkdirSync(chisleDir, { recursive: true });
-  fs.writeFileSync(path.join(chisleDir, 'config.json'), JSON.stringify({ defaultMode: 'on' }));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-xdg-'));
+  const h3wDir = path.join(dir, 'h3w');
+  fs.mkdirSync(h3wDir, { recursive: true });
+  fs.writeFileSync(path.join(h3wDir, 'config.json'), JSON.stringify({ defaultMode: 'on' }));
   try {
     const out = activate(JSON.stringify({ source: 'startup' }), { XDG_CONFIG_HOME: dir });
     for (const h of [...PROSE_HEADINGS, ...CODE_HEADINGS, ...ALWAYS_ON_HEADINGS]) {
@@ -373,10 +373,10 @@ test('activate: config file present but no sections key → full ruleset (defaul
 });
 
 test('activate: sections.prose false → emitted ruleset drops prose headings only', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-xdg-'));
-  const chisleDir = path.join(dir, 'chisle');
-  fs.mkdirSync(chisleDir, { recursive: true });
-  fs.writeFileSync(path.join(chisleDir, 'config.json'), JSON.stringify({ sections: { prose: false } }));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-xdg-'));
+  const h3wDir = path.join(dir, 'h3w');
+  fs.mkdirSync(h3wDir, { recursive: true });
+  fs.writeFileSync(path.join(h3wDir, 'config.json'), JSON.stringify({ sections: { prose: false } }));
   try {
     const out = activate(JSON.stringify({ source: 'startup' }), { XDG_CONFIG_HOME: dir });
     for (const h of PROSE_HEADINGS) assert.ok(!out.includes(`## ${h}`), `still has ${h}`);
@@ -387,10 +387,10 @@ test('activate: sections.prose false → emitted ruleset drops prose headings on
 });
 
 test('activate: malformed sections value falls back to enabled, does not throw', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-xdg-'));
-  const chisleDir = path.join(dir, 'chisle');
-  fs.mkdirSync(chisleDir, { recursive: true });
-  fs.writeFileSync(path.join(chisleDir, 'config.json'), JSON.stringify({ sections: 'nope' }));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-xdg-'));
+  const h3wDir = path.join(dir, 'h3w');
+  fs.mkdirSync(h3wDir, { recursive: true });
+  fs.writeFileSync(path.join(h3wDir, 'config.json'), JSON.stringify({ sections: 'nope' }));
   try {
     const out = activate(JSON.stringify({ source: 'startup' }), { XDG_CONFIG_HOME: dir });
     for (const h of [...PROSE_HEADINGS, ...CODE_HEADINGS, ...ALWAYS_ON_HEADINGS]) {
@@ -409,7 +409,7 @@ test('activate: malformed sections value falls back to enabled, does not throw',
 // because every other test checks "is it absent" against the same stale string.
 test('every PROSE/CODE heading constant still exists in SKILL.md', () => {
   const md = fs.readFileSync(
-    path.join(__dirname, '..', 'skills', 'chisle', 'SKILL.md'), 'utf8');
+    path.join(__dirname, '..', 'skills', 'h3w', 'SKILL.md'), 'utf8');
   const present = [...md.matchAll(/^## (.+)$/gm)].map((m) => m[1].trim());
   for (const h of [...PROSE_HEADINGS, ...CODE_HEADINGS]) {
     assert.ok(present.includes(h),
@@ -426,7 +426,7 @@ test('every SKILL.md heading is classified: prose, code, or deliberately always-
     'When NOT to be lazy', 'Boundaries',
   ];
   const md = fs.readFileSync(
-    path.join(__dirname, '..', 'skills', 'chisle', 'SKILL.md'), 'utf8');
+    path.join(__dirname, '..', 'skills', 'h3w', 'SKILL.md'), 'utf8');
   const classified = new Set([...PROSE_HEADINGS, ...CODE_HEADINGS, ...ALWAYS_ON]);
   for (const m of md.matchAll(/^## (.+)$/gm)) {
     const h = m[1].trim();
@@ -439,7 +439,7 @@ test('every SKILL.md heading is classified: prose, code, or deliberately always-
 // would cut the fence in half and emit broken markdown into the model's context.
 test('no SKILL.md heading-like line hides inside a fenced code block', () => {
   const md = fs.readFileSync(
-    path.join(__dirname, '..', 'skills', 'chisle', 'SKILL.md'), 'utf8');
+    path.join(__dirname, '..', 'skills', 'h3w', 'SKILL.md'), 'utf8');
   let inFence = false;
   md.split('\n').forEach((line, i) => {
     if (line.trim().startsWith('```')) { inFence = !inFence; return; }
@@ -451,17 +451,17 @@ test('no SKILL.md heading-like line hides inside a fenced code block', () => {
 
 // ── Automatic output-style detection (#17) ──────────────────────────────────
 // Claude Code's output styles govern prose structure, so an active style and
-// Chisle's prose section contradict each other (#15). `outputStyle` is a
+// h3w's prose section contradict each other (#15). `outputStyle` is a
 // documented settings key and `/output-style` persists it to
 // .claude/settings.local.json, so the active style is readable even though the
 // SessionStart payload does not carry it.
-const { getActiveOutputStyle, resolveSections } = require('../hooks/chisle-config');
+const { getActiveOutputStyle, resolveSections } = require('../hooks/h3w-config');
 
 function styleFixture() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-style-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-style-'));
   fs.mkdirSync(path.join(root, 'proj', '.claude'), { recursive: true });
   fs.mkdirSync(path.join(root, 'home', '.claude'), { recursive: true });
-  fs.mkdirSync(path.join(root, 'cfg', 'chisle'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'cfg', 'h3w'), { recursive: true });
   return {
     root,
     cwd: path.join(root, 'proj'),
@@ -541,18 +541,18 @@ test('resolveSections: an explicit sections.prose always beats detection', () =>
     const r = () => resolveSections({ cwd: f.cwd, claudeDir: f.claudeDir });
 
     // The important one: a user who asked for prose rules keeps them.
-    f.write('cfg/chisle/config.json', { sections: { prose: true } });
+    f.write('cfg/h3w/config.json', { sections: { prose: true } });
     assert.equal(r().prose, true, 'explicit true must survive an active style');
 
-    f.write('cfg/chisle/config.json', { sections: { prose: false } });
+    f.write('cfg/h3w/config.json', { sections: { prose: false } });
     assert.equal(r().prose, false);
 
     // Only `code` set: prose is still unset, so detection applies.
-    f.write('cfg/chisle/config.json', { sections: { code: false } });
+    f.write('cfg/h3w/config.json', { sections: { code: false } });
     assert.deepEqual(r(), { prose: false, code: false, outputStyle: 'Explanatory' });
 
     // Non-boolean is not "explicit" — it falls back and detection applies.
-    f.write('cfg/chisle/config.json', { sections: { prose: 'yes' } });
+    f.write('cfg/h3w/config.json', { sections: { prose: 'yes' } });
     assert.equal(r().prose, false);
   } finally {
     if (saved === undefined) delete process.env.XDG_CONFIG_HOME;

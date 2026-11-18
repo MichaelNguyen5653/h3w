@@ -8,7 +8,7 @@ const TOOLS = require('../bin/lib/tools');
 
 // A fake Claude config dir: one transcript with a prompt snapshot and some calls.
 function fixture(settings) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-tools-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-tools-'));
   const proj = path.join(dir, 'projects', 'p');
   fs.mkdirSync(proj, { recursive: true });
   const schema = (name, n) => ({ name, description: 'x'.repeat(n), schema: {} });
@@ -61,7 +61,7 @@ test('tools refuses to deny core tools and changes nothing on --dry-run', () => 
 // ── skills ───────────────────────────────────────────────────────────────────
 
 function skillFixture(settings) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-tools-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-tools-'));
   const proj = path.join(dir, 'projects', 'p');
   fs.mkdirSync(proj, { recursive: true });
   const listing = ['- pptx: ' + 'd'.repeat(600), '- plug:used-skill: ' + 'd'.repeat(600), '- mine: ' + 'd'.repeat(600), '- tiny: short'].join('\n');

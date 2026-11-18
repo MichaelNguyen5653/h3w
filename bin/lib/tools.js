@@ -1,5 +1,5 @@
 'use strict';
-// `npx chisle tools [trim|restore] [--days N] [--also A,B] [--dry-run] [--config-dir <dir>]`
+// `npx github:MichaelNguyen5653/h3w tools [trim|restore] [--days N] [--also A,B] [--dry-run] [--config-dir <dir>]`
 //
 // Every Claude Code request carries fixed overhead the model may never use:
 //   - the full schema of every loaded tool. On the maintainer's machine
@@ -33,7 +33,7 @@ const CORE = new Set(['Bash', 'Read', 'Edit', 'MultiEdit', 'Write', 'Glob', 'Gre
 const MIN_CHARS = 2000;        // smaller schemas are not worth a deny entry
 const MIN_SKILL_CHARS = 150;   // shorter descriptions are not worth an override
 const CHARS_PER_TOKEN = 5.5;   // measured on tool schemas: 5 denied tools, -3,707 tokens
-const RECORD = '.chisle-trimmed-tools.json';
+const RECORD = '.h3w-trimmed-tools.json';
 
 function transcripts(dir, since) {
   const out = [];
@@ -180,7 +180,7 @@ function main(argv, claudeDir, out = (s) => process.stdout.write(s + '\n')) {
     else if (a === '--dry-run') o.dryRun = true;
     else if (a === '--days') o.days = Number(argv[++i]);
     else if (a === '--also') o.also = String(argv[++i] || '').split(',').map((x) => x.trim()).filter(Boolean);
-    else throw new Error('usage: npx chisle tools [trim|restore] [--days N] [--also A,B] [--dry-run] [--config-dir <dir>]');
+    else throw new Error('usage: npx github:MichaelNguyen5653/h3w tools [trim|restore] [--days N] [--also A,B] [--dry-run] [--config-dir <dir>]');
   }
   const core = o.also.filter((n) => CORE.has(n));
   if (core.length) throw new Error(`refusing to deny core tool(s): ${core.join(', ')}`);
@@ -212,9 +212,9 @@ function main(argv, claudeDir, out = (s) => process.stdout.write(s + '\n')) {
     const what = [];
     if (done.tools.length) what.push(`denied ${done.tools.join(', ')}`);
     if (done.skills.length) what.push(`listed ${done.skills.length} skill(s) name-only`);
-    out(what.length ? `  ${o.dryRun ? 'would have ' : ''}${what.join('; ')}. Undo: npx chisle tools restore` : '  nothing new to trim.');
+    out(what.length ? `  ${o.dryRun ? 'would have ' : ''}${what.join('; ')}. Undo: npx github:MichaelNguyen5653/h3w tools restore` : '  nothing new to trim.');
   } else if (pick.length || pickSkills.length) {
-    out(`  apply with: npx chisle tools trim${o.also.length ? ' --also ' + o.also.join(',') : ''}   (undo: npx chisle tools restore)`);
+    out(`  apply with: npx github:MichaelNguyen5653/h3w tools trim${o.also.length ? ' --also ' + o.also.join(',') : ''}   (undo: npx github:MichaelNguyen5653/h3w tools restore)`);
   }
 }
 

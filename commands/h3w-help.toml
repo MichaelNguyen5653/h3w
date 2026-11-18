@@ -1,0 +1,4 @@
+# h3w-help: quick reference card
+[command]
+name = "h3w-help"
+description = "Show h3w quick reference: modes, levels, commands."

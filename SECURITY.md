@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Only the latest published release on npm receives security fixes. Chisle is a
+Only the latest published release on npm receives security fixes. h3w is a
 zero-dependency tool with no long-term support branches — upgrade rather than
 expect a backport.
 
@@ -27,4 +27,4 @@ next patch release, with credit unless you ask otherwise.
 
 ## Why this matters here
 
-Chisle runs hooks or a Pi extension inside your agent process. Pi extensions have full user permissions; review source before installing, and trust project-local `.pi` resources only from repositories you trust. The config layer (`hooks/chisle-config.js`) is symlink-safe by design (`O_NOFOLLOW`, `0600`). If you find path traversal, symlink following, unsafe tool-result mutation, or installer privilege escalation, report it here.
+h3w runs hooks or a Pi extension inside your agent process. Pi extensions have full user permissions; review source before installing, and trust project-local `.pi` resources only from repositories you trust. The config layer (`hooks/h3w-config.js`) is symlink-safe by design (`O_NOFOLLOW`, `0600`). If you find path traversal, symlink following, unsafe tool-result mutation, or installer privilege escalation, report it here.

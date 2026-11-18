@@ -1,0 +1,7 @@
+# h3w slash command
+# Maximum-efficiency dev mode
+# Usage: /h3w  ·  /h3w off
+
+[command]
+name = "h3w"
+description = "Activate h3w: zero-fluff prose + YAGNI ladder code decisions. /h3w off to stop."

@@ -1,10 +1,10 @@
-# chisle — statusline badge for Claude Code (Windows / PowerShell)
-# Mirrors chisle-statusline.sh. Reads the mode flag and savings suffix, renders an orange badge.
+# h3w — statusline badge for Claude Code (Windows / PowerShell)
+# Mirrors h3w-statusline.sh. Reads the mode flag and savings suffix, renders an orange badge.
 
 $ErrorActionPreference = 'SilentlyContinue'
 
 $configDir = if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { Join-Path $HOME '.claude' }
-$flag = Join-Path $configDir '.chisle-active'
+$flag = Join-Path $configDir '.h3w-active'
 
 if (-not (Test-Path -LiteralPath $flag -PathType Leaf)) { exit 0 }
 
@@ -32,7 +32,7 @@ $reset = "$esc[0m"
 
 # Input-side savings from the tool-output compressor ledger (mirrors the sh version).
 $suffix = ''
-$stats = Join-Path $configDir '.chisle-compress-stats.json'
+$stats = Join-Path $configDir '.h3w-compress-stats.json'
 $sitem = if (Test-Path -LiteralPath $stats -PathType Leaf) { Get-Item -LiteralPath $stats -Force } else { $null }
 if ($sitem -and -not ($sitem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
   $raw = Get-Content -LiteralPath $stats -Raw
@@ -46,4 +46,4 @@ if ($sitem -and -not ($sitem.Attributes -band [IO.FileAttributes]::ReparsePoint)
 }
 
 # One mode, one badge.
-Write-Host -NoNewline "$orange[CHISLE]$reset$suffix"
+Write-Host -NoNewline "$orange[H3W]$reset$suffix"

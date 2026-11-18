@@ -2,7 +2,7 @@
 // Quality benchmark: does the Chisle ruleset change how OFTEN the model is RIGHT?
 //
 // Two arms, identical prompt, identical model. vanilla appends nothing; chisle
-// appends skills/chisle/SKILL.md (frontmatter stripped) as the system prompt --
+// appends skills/h3w/SKILL.md (frontmatter stripped) as the system prompt --
 // exactly what the shipped skill does. Every item is auto-graded:
 //   math -> exact match on a required "ANSWER:" line
 //   code -> hidden unit tests the model never sees

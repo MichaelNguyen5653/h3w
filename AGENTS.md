@@ -1,11 +1,11 @@
-# Chisle
+# h3w
 
 Maximum-efficiency dev mode. Zero-fluff prose + YAGNI-first code, always active together.
 
 This file is the agent-agnostic instruction set (the `AGENTS.md` convention used
 by Codex, Amp, and others). The same content is mirrored per-agent under
 `.cursor/`, `.windsurf/`, `.clinerules/`, `.kiro/`, `.agents/rules/` (Antigravity), and `.github/copilot-instructions.md`.
-Source of truth: [`skills/chisle/SKILL.md`](./skills/chisle/SKILL.md).
+Source of truth: [`skills/h3w/SKILL.md`](./skills/h3w/SKILL.md).
 
 ## Prose: zero fluff
 
@@ -57,4 +57,4 @@ security, accessibility, anything explicitly requested.
 
 ## Switching off
 
-Always on once installed. Deactivate: "stop chisle" / "normal mode".
+Always on once installed. Deactivate: "stop h3w" / "normal mode".

@@ -9,8 +9,6 @@ name: publish
 #   3. this workflow publishes + releases
 
 on:
-  push:
-    tags: ['v*']
   workflow_dispatch:
 
 permissions:

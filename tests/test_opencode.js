@@ -13,14 +13,14 @@ const { symlinkSkip } = require('./fixtures/symlinks');
 const { spawn, spawnSync } = require('child_process');
 
 // State (spill/dedup) must not leak into ~/.claude during tests.
-process.env.CHISLE_STATE_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-oc-'));
+process.env.H3W_STATE_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-oc-'));
 
-const opencodeCore = require('../hooks/chisle-compress-output');
+const opencodeCore = require('../hooks/h3w-compress-output');
 const {
   opencodeToolAllowed, compressForOpencode, boundForOpencode, recordSavings,
   SAFE_TOOLS_OPENCODE, THRESHOLDS,
 } = opencodeCore;
-const { getOpencodeDir, getOpencodeStateDir } = require('../hooks/chisle-config');
+const { getOpencodeDir, getOpencodeStateDir } = require('../hooks/h3w-config');
 
 function bigOutput(lines, prefix) {
   return Array.from({ length: lines }, (_, i) => `${prefix || 'line'} ${i} ${'x'.repeat(80)}`).join('\n');
@@ -38,35 +38,35 @@ function hasUnpairedSurrogate(value) {
 
 function sessionStateFile(stateDir, sessionId) {
   const name = crypto.createHash('sha256').update(sessionId).digest('hex') + '.json';
-  return path.join(stateDir, 'chisle-dedup', name);
+  return path.join(stateDir, 'h3w-dedup', name);
 }
 
 // ── config root ──────────────────────────────────────────────────────────────
 
 test('OpenCode root follows host precedence and keeps an injectable home fallback', () => {
-  const home = path.join(os.tmpdir(), 'chisle-home');
+  const home = path.join(os.tmpdir(), 'h3w-home');
   assert.equal(getOpencodeDir({ env: {}, home }), path.join(home, '.config', 'opencode'));
   assert.equal(getOpencodeDir({ env: { XDG_CONFIG_HOME: '/xdg' }, home }), path.join('/xdg', 'opencode'));
   assert.equal(getOpencodeDir({ env: { XDG_CONFIG_HOME: '/xdg', OPENCODE_CONFIG_DIR: '/custom' }, home }), '/custom');
 });
 
-test('OpenCode state uses its config root unless CHISLE_STATE_DIR overrides it', () => {
-  const home = path.join(os.tmpdir(), 'chisle-home');
+test('OpenCode state uses its config root unless H3W_STATE_DIR overrides it', () => {
+  const home = path.join(os.tmpdir(), 'h3w-home');
   assert.equal(getOpencodeStateDir({ env: { OPENCODE_CONFIG_DIR: '/custom' }, home }), '/custom');
-  assert.equal(getOpencodeStateDir({ env: { OPENCODE_CONFIG_DIR: '/custom', CHISLE_STATE_DIR: '/state' }, home }), '/state');
+  assert.equal(getOpencodeStateDir({ env: { OPENCODE_CONFIG_DIR: '/custom', H3W_STATE_DIR: '/state' }, home }), '/state');
 });
 
 // ── allowlist ────────────────────────────────────────────────────────────────
 
 test('opencodeToolAllowed allows only explicit read-heavy defaults', () => {
-  const previous = process.env.CHISLE_COMPRESS_TOOLS;
-  delete process.env.CHISLE_COMPRESS_TOOLS;
+  const previous = process.env.H3W_COMPRESS_TOOLS;
+  delete process.env.H3W_COMPRESS_TOOLS;
   try {
     assert.deepEqual(SAFE_TOOLS_OPENCODE, ['bash', 'shell', 'grep', 'glob', 'webfetch', 'websearch', 'list']);
     for (const t of SAFE_TOOLS_OPENCODE) assert.equal(opencodeToolAllowed(t), true, t);
   } finally {
-    if (previous === undefined) delete process.env.CHISLE_COMPRESS_TOOLS;
-    else process.env.CHISLE_COMPRESS_TOOLS = previous;
+    if (previous === undefined) delete process.env.H3W_COMPRESS_TOOLS;
+    else process.env.H3W_COMPRESS_TOOLS = previous;
   }
 });
 
@@ -89,26 +89,26 @@ test('opencodeToolAllowed rejects junk', () => {
   assert.equal(opencodeToolAllowed(undefined), false);
 });
 
-test('CHISLE_COMPRESS_TOOLS override is an exact allowlist', () => {
-  process.env.CHISLE_COMPRESS_TOOLS = 'bash,grep';
+test('H3W_COMPRESS_TOOLS override is an exact allowlist', () => {
+  process.env.H3W_COMPRESS_TOOLS = 'bash,grep';
   try {
     assert.equal(opencodeToolAllowed('bash'), true);
     assert.equal(opencodeToolAllowed('glob'), false);       // not in override
     assert.equal(opencodeToolAllowed('github-tools_x'), false); // override wins over MCP heuristic
   } finally {
-    delete process.env.CHISLE_COMPRESS_TOOLS;
+    delete process.env.H3W_COMPRESS_TOOLS;
   }
 });
 
-test('CHISLE_COMPRESS_TOOLS allows explicit MCP tools but not protected tools', () => {
-  process.env.CHISLE_COMPRESS_TOOLS = 'custom_report,read,edit,write,patch,multiedit,notebookread';
+test('H3W_COMPRESS_TOOLS allows explicit MCP tools but not protected tools', () => {
+  process.env.H3W_COMPRESS_TOOLS = 'custom_report,read,edit,write,patch,multiedit,notebookread';
   try {
     assert.equal(opencodeToolAllowed('custom_report'), true);
     for (const t of ['read', 'edit', 'write', 'patch', 'multiedit', 'notebookread']) {
       assert.equal(opencodeToolAllowed(t), false, t);
     }
   } finally {
-    delete process.env.CHISLE_COMPRESS_TOOLS;
+    delete process.env.H3W_COMPRESS_TOOLS;
   }
 });
 
@@ -118,7 +118,7 @@ test('compressForOpencode elides a big bash output', () => {
   const text = bigOutput(500);
   const out = compressForOpencode('bash', text, { mode: 'on' });
   assert.ok(out && out.length < text.length);
-  assert.match(out, /chisle: elided/);
+  assert.match(out, /h3w: elided/);
 });
 
 test('compressForOpencode leaves small output untouched', () => {
@@ -134,11 +134,11 @@ test('compressForOpencode never touches read output even when huge', () => {
 test('compressForOpencode honors mode off and the kill switch', () => {
   const text = bigOutput(500);
   assert.equal(compressForOpencode('bash', text, { mode: 'off' }), null);
-  process.env.CHISLE_COMPRESS = '0';
+  process.env.H3W_COMPRESS = '0';
   try {
     assert.equal(compressForOpencode('bash', text, { mode: 'on' }), null);
   } finally {
-    delete process.env.CHISLE_COMPRESS;
+    delete process.env.H3W_COMPRESS;
   }
 });
 
@@ -163,8 +163,8 @@ test('salvage matches severities inside underscore codes and ERR!, not inside wo
 });
 
 test('maxChars is a final bound for long lines with late errors', () => {
-  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-oc-bound-'));
-  process.env.CHISLE_COMPRESS_MAX_CHARS = '4000';
+  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-oc-bound-'));
+  process.env.H3W_COMPRESS_MAX_CHARS = '4000';
   try {
     const text = [
       `BEGIN ${'a'.repeat(5000)}`,
@@ -178,29 +178,29 @@ test('maxChars is a final bound for long lines with late errors', () => {
     assert.match(out, /FATAL LATE_ERROR/);
     assert.equal(fs.readFileSync(recoveryPath(out), 'utf8'), text);
   } finally {
-    delete process.env.CHISLE_COMPRESS_MAX_CHARS;
+    delete process.env.H3W_COMPRESS_MAX_CHARS;
     fs.rmSync(stateDir, { recursive: true, force: true });
   }
 });
 
 test('maxChars remains exact at its smallest valid value', () => {
-  const previous = process.env.CHISLE_COMPRESS_MAX_CHARS;
-  process.env.CHISLE_COMPRESS_MAX_CHARS = '1';
+  const previous = process.env.H3W_COMPRESS_MAX_CHARS;
+  process.env.H3W_COMPRESS_MAX_CHARS = '1';
   try {
     assert.equal(compressForOpencode('bash', 'x'.repeat(5000), { mode: 'on' }).length, 1);
   } finally {
-    if (previous === undefined) delete process.env.CHISLE_COMPRESS_MAX_CHARS;
-    else process.env.CHISLE_COMPRESS_MAX_CHARS = previous;
+    if (previous === undefined) delete process.env.H3W_COMPRESS_MAX_CHARS;
+    else process.env.H3W_COMPRESS_MAX_CHARS = previous;
   }
 });
 
 test('maxChars bounds short output and duplicate markers', () => {
-  const previous = process.env.CHISLE_COMPRESS_MAX_CHARS;
-  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-oc-small-bound-'));
+  const previous = process.env.H3W_COMPRESS_MAX_CHARS;
+  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-oc-small-bound-'));
   try {
-    process.env.CHISLE_COMPRESS_MAX_CHARS = '1';
+    process.env.H3W_COMPRESS_MAX_CHARS = '1';
     assert.equal(compressForOpencode('bash', 'x'.repeat(100), { mode: 'on', stateDir }).length, 1);
-    process.env.CHISLE_COMPRESS_MAX_CHARS = '1000';
+    process.env.H3W_COMPRESS_MAX_CHARS = '1000';
     const text = Array(5).fill('x'.repeat(300)).join('\n') + '\n' + 'y'.repeat(3000);
     const opts = { mode: 'on', stateDir, sessionId: 'bounded-dedup' };
     compressForOpencode('bash', text, { ...opts, callId: 'first' });
@@ -208,15 +208,15 @@ test('maxChars bounds short output and duplicate markers', () => {
     assert.ok(duplicate.length <= 1000);
     assert.match(duplicate, /byte-identical/);
   } finally {
-    if (previous === undefined) delete process.env.CHISLE_COMPRESS_MAX_CHARS;
-    else process.env.CHISLE_COMPRESS_MAX_CHARS = previous;
+    if (previous === undefined) delete process.env.H3W_COMPRESS_MAX_CHARS;
+    else process.env.H3W_COMPRESS_MAX_CHARS = previous;
     fs.rmSync(stateDir, { recursive: true, force: true });
   }
 });
 
 test('small bounds retain late diagnostics and head/tail context', () => {
-  const previous = process.env.CHISLE_COMPRESS_MAX_CHARS;
-  process.env.CHISLE_COMPRESS_MAX_CHARS = '1000';
+  const previous = process.env.H3W_COMPRESS_MAX_CHARS;
+  process.env.H3W_COMPRESS_MAX_CHARS = '1000';
   try {
     const text = `BEGIN ${'a'.repeat(5000)} FATAL LATE_ERROR ${'b'.repeat(5000)} END`;
     const out = compressForOpencode('bash', text, { mode: 'on' });
@@ -226,13 +226,13 @@ test('small bounds retain late diagnostics and head/tail context', () => {
     assert.match(out, /END/);
     assert.equal(fs.readFileSync(recoveryPath(out), 'utf8'), text);
   } finally {
-    if (previous === undefined) delete process.env.CHISLE_COMPRESS_MAX_CHARS;
-    else process.env.CHISLE_COMPRESS_MAX_CHARS = previous;
+    if (previous === undefined) delete process.env.H3W_COMPRESS_MAX_CHARS;
+    else process.env.H3W_COMPRESS_MAX_CHARS = previous;
   }
 });
 
 test('spill preserves the byte-identical pre-scrub output', () => {
-  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-oc-spill-'));
+  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-oc-spill-'));
   try {
     const text = `\u001b[31mBEGIN\u001b[0m   \n${bigOutput(200)}\n\n\nEND`;
     const out = compressForOpencode('bash', text, { mode: 'on', stateDir });
@@ -246,21 +246,21 @@ test('spill preserves the byte-identical pre-scrub output', () => {
 });
 
 test('spill rejects symlinked directories and final files', { skip: process.platform === 'win32' }, () => {
-  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-oc-spill-link-'));
-  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-oc-spill-outside-'));
+  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-oc-spill-link-'));
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-oc-spill-outside-'));
   try {
     const text = bigOutput(200, 'linked');
-    fs.symlinkSync(outside, path.join(stateDir, 'chisle-spill'));
+    fs.symlinkSync(outside, path.join(stateDir, 'h3w-spill'));
     const dirOutput = compressForOpencode('bash', text, { mode: 'on', stateDir });
     assert.doesNotMatch(dirOutput, /Full output:/);
     assert.deepEqual(fs.readdirSync(outside), []);
 
-    fs.unlinkSync(path.join(stateDir, 'chisle-spill'));
-    fs.mkdirSync(path.join(stateDir, 'chisle-spill'));
+    fs.unlinkSync(path.join(stateDir, 'h3w-spill'));
+    fs.mkdirSync(path.join(stateDir, 'h3w-spill'));
     const hash = crypto.createHash('sha256').update(text).digest('hex').slice(0, 12);
     const victim = path.join(outside, 'victim');
     fs.writeFileSync(victim, 'unchanged');
-    fs.symlinkSync(victim, path.join(stateDir, 'chisle-spill', `bash-${hash}.txt`));
+    fs.symlinkSync(victim, path.join(stateDir, 'h3w-spill', `bash-${hash}.txt`));
     const fileOutput = compressForOpencode('bash', text, { mode: 'on', stateDir });
     assert.doesNotMatch(fileOutput, /Full output:/);
     assert.equal(fs.readFileSync(victim, 'utf8'), 'unchanged');
@@ -271,7 +271,7 @@ test('spill rejects symlinked directories and final files', { skip: process.plat
 });
 
 test('a repeated spill reuses the existing file even when UTF-8 cannot round-trip it', () => {
-  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-oc-spill-reuse-'));
+  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-oc-spill-reuse-'));
   try {
     const text = bigOutput(200, 'lone \uD800');
     const first = compressForOpencode('bash', text, { mode: 'on', stateDir });
@@ -284,8 +284,8 @@ test('a repeated spill reuses the existing file even when UTF-8 cannot round-tri
 });
 
 test('spill and stats reject symlinked randomized temporary targets', { skip: process.platform === 'win32' }, () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-oc-tmp-link-'));
-  const core = path.join(__dirname, '..', 'hooks', 'chisle-compress-output.js');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-oc-tmp-link-'));
+  const core = path.join(__dirname, '..', 'hooks', 'h3w-compress-output.js');
   try {
     const probe = `
       const fs=require('fs'),path=require('path'),crypto=require('crypto');
@@ -293,14 +293,14 @@ test('spill and stats reject symlinked randomized temporary targets', { skip: pr
       const c=require(${JSON.stringify(core)}),root=process.argv[1],victim=path.join(root,'victim');
       fs.writeFileSync(victim,'unchanged');
       const text=Array.from({length:200},(_,i)=>'temporary '+i+' '+'x'.repeat(80)).join('\\n');
-      const spillDir=path.join(root,'spill','chisle-spill');fs.mkdirSync(spillDir,{recursive:true});
+      const spillDir=path.join(root,'spill','h3w-spill');fs.mkdirSync(spillDir,{recursive:true});
       const hash=crypto.createHash('sha256').update(text).digest('hex').slice(0,12);
       fs.symlinkSync(victim,path.join(spillDir,'bash-'+hash+'.txt.'+process.pid+'.010203040506.tmp'));
       const out=c.compressForOpencode('bash',text,{mode:'on',stateDir:path.join(root,'spill')});
       const statsDir=path.join(root,'stats');fs.mkdirSync(statsDir);
-      fs.symlinkSync(victim,path.join(statsDir,'.chisle-compress-stats.json.'+process.pid+'.010203040506.tmp'));
+      fs.symlinkSync(victim,path.join(statsDir,'.h3w-compress-stats.json.'+process.pid+'.010203040506.tmp'));
       c.recordSavings(10,statsDir);
-      process.stdout.write(JSON.stringify({recovery:/Full output:/.test(out),ledger:fs.existsSync(path.join(statsDir,'.chisle-compress-stats.json')),victim:fs.readFileSync(victim,'utf8')}));
+      process.stdout.write(JSON.stringify({recovery:/Full output:/.test(out),ledger:fs.existsSync(path.join(statsDir,'.h3w-compress-stats.json')),victim:fs.readFileSync(victim,'utf8')}));
     `;
     const result = spawnSync(process.execPath, ['-e', probe, root], { encoding: 'utf8' });
     assert.equal(result.status, 0, result.stderr);
@@ -311,15 +311,15 @@ test('spill and stats reject symlinked randomized temporary targets', { skip: pr
 });
 
 // Symlinked state ROOT is a supported user layout (dotfiles via GNU stow), so
-// recordSavings must still write there. The files Chisle writes into the root
+// recordSavings must still write there. The files h3w writes into the root
 // are kept symlink-free.
 test('stats writes are private and reject a symlinked stats file', { skip: process.platform === 'win32' }, () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-oc-stats-safe-'));
-  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-oc-stats-outside-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-oc-stats-safe-'));
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-oc-stats-outside-'));
   try {
     const normal = path.join(root, 'normal');
     recordSavings(12, normal);
-    const ledger = path.join(normal, '.chisle-compress-stats.json');
+    const ledger = path.join(normal, '.h3w-compress-stats.json');
     assert.deepEqual(JSON.parse(fs.readFileSync(ledger, 'utf8')), { savedChars: 12, events: 1 });
     assert.equal(fs.statSync(ledger).mode & 0o777, 0o600);
 
@@ -327,7 +327,7 @@ test('stats writes are private and reject a symlinked stats file', { skip: proce
     fs.mkdirSync(linkedFileDir);
     const victim = path.join(outside, 'victim');
     fs.writeFileSync(victim, 'unchanged');
-    fs.symlinkSync(victim, path.join(linkedFileDir, '.chisle-compress-stats.json'));
+    fs.symlinkSync(victim, path.join(linkedFileDir, '.h3w-compress-stats.json'));
     recordSavings(30, linkedFileDir);
     assert.equal(fs.readFileSync(victim, 'utf8'), 'unchanged');
   } finally {
@@ -337,11 +337,11 @@ test('stats writes are private and reject a symlinked stats file', { skip: proce
 });
 
 // A user-owned state ROOT that is itself a symlink (dotfiles via GNU stow)
-// must still record — only the files/subdirs Chisle creates beneath it are
+// must still record — only the files/subdirs h3w creates beneath it are
 // kept symlink-free. Regression guard for PR #33 review. Symlink support is
 // probed up front so an environment that can't create links skips cleanly.
 test('recordSavings, spill, and dedup accept a symlinked state root', (t) => {
-  const probe = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-oc-symprobe-'));
+  const probe = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-oc-symprobe-'));
   let linkOk = true;
   try {
     fs.symlinkSync(path.join(probe, 'no-target'), path.join(probe, 'link'), 'dir');
@@ -349,15 +349,15 @@ test('recordSavings, spill, and dedup accept a symlinked state root', (t) => {
   finally { fs.rmSync(probe, { recursive: true, force: true }); }
   if (!linkOk) { t.skip('host cannot create symlinks'); return; }
 
-  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-oc-symroot-'));
-  const victimDir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-oc-symroot-victim-'));
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-oc-symroot-'));
+  const victimDir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-oc-symroot-victim-'));
   const root = path.join(path.dirname(outside), path.basename(outside) + '-link');
   try {
     fs.symlinkSync(outside, root, 'dir');
 
     // Stats ledger records through the symlinked root.
     recordSavings(100, root);
-    const ledger = path.join(outside, '.chisle-compress-stats.json');
+    const ledger = path.join(outside, '.h3w-compress-stats.json');
     assert.deepEqual(JSON.parse(fs.readFileSync(ledger, 'utf8')), { savedChars: 100, events: 1 });
 
     // Spill and per-session dedup state under the symlinked root still write.
@@ -366,12 +366,12 @@ test('recordSavings, spill, and dedup accept a symlinked state root', (t) => {
     const recovery = recoveryPath(output);
     // The hook returns the path as given (the symlink); the file must exist
     // inside the REAL directory the root points at.
-    assert.equal(path.dirname(recovery), path.join(root, 'chisle-spill'));
-    assert.equal(fs.realpathSync(path.dirname(recovery)), path.join(outside, 'chisle-spill'));
+    assert.equal(path.dirname(recovery), path.join(root, 'h3w-spill'));
+    assert.equal(fs.realpathSync(path.dirname(recovery)), path.join(outside, 'h3w-spill'));
     assert.deepEqual(fs.readFileSync(recovery), Buffer.from(text));
-    assert.equal(fs.existsSync(path.join(outside, 'chisle-dedup')), true);
+    assert.equal(fs.existsSync(path.join(outside, 'h3w-dedup')), true);
 
-    // ...but a symlink planted by Chisle INSIDE the root is still rejected.
+    // ...but a symlink planted by h3w INSIDE the root is still rejected.
     const victim = path.join(victimDir, 'victim');
     fs.writeFileSync(victim, 'unchanged');
     fs.rmSync(ledger); // symlinkSync cannot replace an existing file
@@ -386,7 +386,7 @@ test('recordSavings, spill, and dedup accept a symlinked state root', (t) => {
 });
 
 test('OpenCode truncation is Unicode-safe', () => {
-  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-oc-unicode-'));
+  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-oc-unicode-'));
   try {
     const text = `${'😀'.repeat(3000)}\n${'😀'.repeat(400)} FATAL EMOJI_ERROR ${'😀'.repeat(400)}\n${'😀'.repeat(3000)}`;
     const out = compressForOpencode('bash', text, { mode: 'on', stateDir });
@@ -402,7 +402,7 @@ test('OpenCode truncation is Unicode-safe', () => {
 
 async function loadV2Plugin() {
   const hooks = [];
-  const setup = require('../.opencode/plugins-v2/chisle/setup.cjs');
+  const setup = require('../.opencode/plugins-v2/h3w/setup.cjs');
   await setup({ tool: { hook: async (name, callback) => hooks.push([name, callback]) } });
   assert.equal(hooks.length, 1);
   assert.equal(hooks[0][0], 'execute.after');
@@ -410,18 +410,18 @@ async function loadV2Plugin() {
 }
 
 test('OpenCode v2 plugin uses Plugin.define and registers execute.after', async () => {
-  const entry = fs.readFileSync(path.join(__dirname, '..', '.opencode', 'plugins-v2', 'chisle', 'index.mjs'), 'utf8');
+  const entry = fs.readFileSync(path.join(__dirname, '..', '.opencode', 'plugins-v2', 'h3w', 'index.mjs'), 'utf8');
   assert.match(entry, /import \{ Plugin \} from '@opencode\/plugin'/);
-  assert.match(entry, /Plugin\.define\(\{ id: 'chisle', setup \}\)/);
+  assert.match(entry, /Plugin\.define\(\{ id: 'h3w', setup \}\)/);
   assert.equal(typeof await loadV2Plugin(), 'function');
 });
 
 test('OpenCode v2 shell compression preserves spill, metadata, safety, stats, and idempotency', async () => {
-  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-oc-v2-'));
-  const previous = process.env.CHISLE_STATE_DIR;
-  const previousTools = process.env.CHISLE_COMPRESS_TOOLS;
-  process.env.CHISLE_STATE_DIR = stateDir;
-  process.env.CHISLE_COMPRESS_TOOLS = 'shell';
+  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-oc-v2-'));
+  const previous = process.env.H3W_STATE_DIR;
+  const previousTools = process.env.H3W_COMPRESS_TOOLS;
+  process.env.H3W_STATE_DIR = stateDir;
+  process.env.H3W_COMPRESS_TOOLS = 'shell';
   try {
     const after = await loadV2Plugin();
     const original = bigOutput(500, 'shell');
@@ -432,11 +432,11 @@ test('OpenCode v2 shell compression preserves spill, metadata, safety, stats, an
     await after(event);
     const compressed = event.result.content[0].text;
     assert.ok(compressed.length < original.length);
-    assert.match(compressed, /chisle: elided/);
+    assert.match(compressed, /h3w: elided/);
     assert.deepEqual(event.result.output, { output: original, exit: 0 });
     assert.deepEqual(event.result.metadata, { exit: 0 });
     assert.deepEqual(fs.readFileSync(recoveryPath(compressed)), Buffer.from(original));
-    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(stateDir, '.chisle-compress-stats.json'), 'utf8')), {
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(stateDir, '.h3w-compress-stats.json'), 'utf8')), {
       savedChars: original.length - compressed.length, events: 1,
     });
 
@@ -452,10 +452,10 @@ test('OpenCode v2 shell compression preserves spill, metadata, safety, stats, an
       assert.equal(protectedEvent.result.content, original);
     }
   } finally {
-    if (previous === undefined) delete process.env.CHISLE_STATE_DIR;
-    else process.env.CHISLE_STATE_DIR = previous;
-    if (previousTools === undefined) delete process.env.CHISLE_COMPRESS_TOOLS;
-    else process.env.CHISLE_COMPRESS_TOOLS = previousTools;
+    if (previous === undefined) delete process.env.H3W_STATE_DIR;
+    else process.env.H3W_STATE_DIR = previous;
+    if (previousTools === undefined) delete process.env.H3W_COMPRESS_TOOLS;
+    else process.env.H3W_COMPRESS_TOOLS = previousTools;
     fs.rmSync(stateDir, { recursive: true, force: true });
   }
 });
@@ -478,7 +478,7 @@ test('OpenCode v2 plugin fails open when compression throws', async () => {
 });
 
 test('plugin tool.execute.after compresses output.output in place', async () => {
-  const { default: plugin } = await import('../.opencode/plugins/chisle.mjs');
+  const { default: plugin } = await import('../.opencode/plugins/h3w.mjs');
   const hooks = await plugin({});
   const after = hooks['tool.execute.after'];
   assert.equal(typeof after, 'function');
@@ -487,7 +487,7 @@ test('plugin tool.execute.after compresses output.output in place', async () => 
   const output = { title: 't', output: big, metadata: {} };
   await after({ tool: 'bash', sessionID: 's', callID: 'c', args: {} }, output);
   assert.ok(output.output.length < big.length);
-  assert.match(output.output, /chisle: elided/);
+  assert.match(output.output, /h3w: elided/);
 
   // read is never compressed
   const readOut = { title: 't', output: big, metadata: {} };
@@ -496,11 +496,11 @@ test('plugin tool.execute.after compresses output.output in place', async () => 
 });
 
 test('failed Bash results are compressed once without changing exit metadata', async () => {
-  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-oc-failed-'));
-  const previous = process.env.CHISLE_STATE_DIR;
-  process.env.CHISLE_STATE_DIR = stateDir;
+  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-oc-failed-'));
+  const previous = process.env.H3W_STATE_DIR;
+  process.env.H3W_STATE_DIR = stateDir;
   try {
-    const { default: plugin } = await import('../.opencode/plugins/chisle.mjs');
+    const { default: plugin } = await import('../.opencode/plugins/h3w.mjs');
     const hooks = await plugin({});
     const original = `${bigOutput(220, 'failed')}\nFATAL_FAILED_SMOKE exit=23`;
     const output = { output: original, metadata: { exit: 23, truncated: false } };
@@ -511,7 +511,7 @@ test('failed Bash results are compressed once without changing exit metadata', a
     assert.deepEqual(output.metadata, { exit: 23, truncated: false });
     assert.deepEqual(fs.readFileSync(recoveryPath(output.output)), Buffer.from(original));
 
-    const statsPath = path.join(stateDir, '.chisle-compress-stats.json');
+    const statsPath = path.join(stateDir, '.h3w-compress-stats.json');
     const stats = JSON.parse(fs.readFileSync(statsPath, 'utf8'));
     assert.deepEqual(stats, { savedChars: original.length - output.output.length, events: 1 });
 
@@ -519,14 +519,14 @@ test('failed Bash results are compressed once without changing exit metadata', a
     await hooks['experimental.chat.messages.transform']({}, { messages });
     assert.deepEqual(JSON.parse(fs.readFileSync(statsPath, 'utf8')), stats);
   } finally {
-    if (previous === undefined) delete process.env.CHISLE_STATE_DIR;
-    else process.env.CHISLE_STATE_DIR = previous;
+    if (previous === undefined) delete process.env.H3W_STATE_DIR;
+    else process.env.H3W_STATE_DIR = previous;
     fs.rmSync(stateDir, { recursive: true, force: true });
   }
 });
 
 test('plugin hook never throws on odd output shapes', async () => {
-  const { default: plugin } = await import('../.opencode/plugins/chisle.mjs');
+  const { default: plugin } = await import('../.opencode/plugins/h3w.mjs');
   const hooks = await plugin({});
   const after = hooks['tool.execute.after'];
   await after({ tool: 'bash' }, { output: null });
@@ -540,7 +540,7 @@ test('plugin hook never throws on odd output shapes', async () => {
 // ── experimental.chat.messages.transform (request-time / retroactive) ────────
 
 test('messages.transform compresses a big completed tool part in place', async () => {
-  const { default: plugin } = await import('../.opencode/plugins/chisle.mjs');
+  const { default: plugin } = await import('../.opencode/plugins/h3w.mjs');
   const hooks = await plugin({});
   const transform = hooks['experimental.chat.messages.transform'];
   assert.equal(typeof transform, 'function');
@@ -556,11 +556,11 @@ test('messages.transform compresses a big completed tool part in place', async (
   await transform({}, { messages });
   const toolPart = messages[0].parts[1];
   assert.ok(toolPart.state.output.length < big.length);
-  assert.match(toolPart.state.output, /chisle: elided/);
+  assert.match(toolPart.state.output, /h3w: elided/);
 });
 
 test('messages.transform preserves errors and leaves protected/small parts alone', async () => {
-  const { default: plugin } = await import('../.opencode/plugins/chisle.mjs');
+  const { default: plugin } = await import('../.opencode/plugins/h3w.mjs');
   const hooks = await plugin({});
   const transform = hooks['experimental.chat.messages.transform'];
 
@@ -591,18 +591,18 @@ test('messages.transform preserves errors and leaves protected/small parts alone
 });
 
 test('messages.transform honors mode off / kill switch and never throws', async () => {
-  const { default: plugin } = await import('../.opencode/plugins/chisle.mjs');
+  const { default: plugin } = await import('../.opencode/plugins/h3w.mjs');
   const hooks = await plugin({});
   const transform = hooks['experimental.chat.messages.transform'];
 
   const big = bigOutput(500);
-  process.env.CHISLE_COMPRESS = '0';
+  process.env.H3W_COMPRESS = '0';
   try {
     const messages = [{ info: {}, parts: [{ type: 'tool', tool: 'bash', state: { status: 'completed', output: big, input: {} } }] }];
     await transform({}, { messages });
     assert.equal(messages[0].parts[0].state.output, big); // kill switch: untouched
   } finally {
-    delete process.env.CHISLE_COMPRESS;
+    delete process.env.H3W_COMPRESS;
   }
   // odd shapes: no throw
   await transform({}, {});
@@ -611,7 +611,7 @@ test('messages.transform honors mode off / kill switch and never throws', async 
 });
 
 test('messages.transform is idempotent: already-compressed parts are skipped', async () => {
-  const { default: plugin } = await import('../.opencode/plugins/chisle.mjs');
+  const { default: plugin } = await import('../.opencode/plugins/h3w.mjs');
   const hooks = await plugin({});
   const transform = hooks['experimental.chat.messages.transform'];
 
@@ -619,21 +619,21 @@ test('messages.transform is idempotent: already-compressed parts are skipped', a
   const messages = [{ info: {}, parts: [{ type: 'tool', tool: 'bash', state: { status: 'completed', output: big, input: {} } }] }];
   await transform({}, { messages });
   const once = messages[0].parts[0].state.output;
-  assert.match(once, /chisle: elided/);
+  assert.match(once, /h3w: elided/);
   await transform({}, { messages });            // second pass
   assert.equal(messages[0].parts[0].state.output, once); // unchanged, no nested marker
 });
 
-test('tool.execute.after preserves bounded Chisle output but bounds source markers', async () => {
-  const { default: plugin } = await import('../.opencode/plugins/chisle.mjs');
+test('tool.execute.after preserves bounded h3w output but bounds source markers', async () => {
+  const { default: plugin } = await import('../.opencode/plugins/h3w.mjs');
   const hooks = await plugin({});
   const after = hooks['tool.execute.after'];
-  const already = 'kept\n... [chisle: elided 100 lines] ...';
+  const already = 'kept\n... [h3w: elided 100 lines] ...';
   const first = { title: 't', output: already, metadata: {} };
   await after({ tool: 'bash', callID: 'c1' }, first);
   assert.equal(first.output, already);
 
-  const source = bigOutput(500) + '\n... [chisle: source marker] ...';
+  const source = bigOutput(500) + '\n... [h3w: source marker] ...';
   const second = { title: 't', output: source, metadata: {} };
   await after({ tool: 'bash', sessionID: 'marker-session', callID: 'c2' }, second);
   assert.ok(second.output.length <= THRESHOLDS.maxChars);
@@ -641,7 +641,7 @@ test('tool.execute.after preserves bounded Chisle output but bounds source marke
 });
 
 test('OpenCode-native tool_output truncation remains recoverable before the hook', async () => {
-  const { default: plugin } = await import('../.opencode/plugins/chisle.mjs');
+  const { default: plugin } = await import('../.opencode/plugins/h3w.mjs');
   const hooks = await plugin({});
   const nativePath = '/tmp/opencode/tool_original';
   const native = `${bigOutput(300)}\n\n...250000 bytes truncated...\n\nThe tool call succeeded but the output was truncated. Full output saved to: ${nativePath}\nUse Grep to search the full content or Read with offset/limit to view specific sections.`;
@@ -652,7 +652,7 @@ test('OpenCode-native tool_output truncation remains recoverable before the hook
 });
 
 test('OpenCode dedup is isolated across interleaved sessions and calls', () => {
-  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-oc-dedup-'));
+  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-oc-dedup-'));
   try {
     const text = `same\n${'x'.repeat(3000)}`;
     assert.equal(compressForOpencode('bash', text, { mode: 'on', stateDir, sessionId: 'a', callId: 'a1' }), null);
@@ -667,14 +667,14 @@ test('OpenCode dedup is isolated across interleaved sessions and calls', () => {
 });
 
 test('OpenCode dedup state is bounded and does not follow symlinks', () => {
-  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-oc-dedup-safe-'));
+  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-oc-dedup-safe-'));
   try {
     for (let i = 0; i < 25; i++) {
       compressForOpencode('bash', `session ${i}\n${'x'.repeat(3000)}`, {
         mode: 'on', stateDir, sessionId: `s${i}`, callId: `c${i}`,
       });
     }
-    const dir = path.join(stateDir, 'chisle-dedup');
+    const dir = path.join(stateDir, 'h3w-dedup');
     assert.equal(fs.readdirSync(dir).filter((name) => name.endsWith('.json')).length, 20);
     if (symlinkSkip) return; // the bound above holds everywhere; the symlink half needs symlinks
     const target = path.join(stateDir, 'target');
@@ -690,8 +690,8 @@ test('OpenCode dedup state is bounded and does not follow symlinks', () => {
 });
 
 test('concurrent OpenCode sessions retain independent dedup state', async () => {
-  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-oc-concurrent-'));
-  const core = path.join(__dirname, '..', 'hooks', 'chisle-compress-output.js');
+  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-oc-concurrent-'));
+  const core = path.join(__dirname, '..', 'hooks', 'h3w-compress-output.js');
   try {
     const sessions = Array.from({ length: 8 }, (_, i) => `concurrent-${i}`);
     await Promise.all(sessions.map((session) => new Promise((resolve, reject) => {
@@ -712,23 +712,23 @@ test('concurrent OpenCode sessions retain independent dedup state', async () => 
 });
 
 test('only the persisted after-hook replacement records savings', async () => {
-  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-oc-stats-'));
-  const previous = process.env.CHISLE_STATE_DIR;
-  process.env.CHISLE_STATE_DIR = stateDir;
+  const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-oc-stats-'));
+  const previous = process.env.H3W_STATE_DIR;
+  process.env.H3W_STATE_DIR = stateDir;
   try {
-    const { default: plugin } = await import('../.opencode/plugins/chisle.mjs');
+    const { default: plugin } = await import('../.opencode/plugins/h3w.mjs');
     const hooks = await plugin({});
     const big = bigOutput(500, 'stats');
     const output = { output: big };
     await hooks['tool.execute.after']({ tool: 'bash', sessionID: 'stats', callID: 'one' }, output);
-    const statsPath = path.join(stateDir, '.chisle-compress-stats.json');
+    const statsPath = path.join(stateDir, '.h3w-compress-stats.json');
     const first = JSON.parse(fs.readFileSync(statsPath, 'utf8'));
     const messages = [{ parts: [{ type: 'tool', tool: 'bash', state: { status: 'completed', output: big } }] }];
     await hooks['experimental.chat.messages.transform']({}, { messages });
     assert.deepEqual(JSON.parse(fs.readFileSync(statsPath, 'utf8')), first);
   } finally {
-    if (previous === undefined) delete process.env.CHISLE_STATE_DIR;
-    else process.env.CHISLE_STATE_DIR = previous;
+    if (previous === undefined) delete process.env.H3W_STATE_DIR;
+    else process.env.H3W_STATE_DIR = previous;
     fs.rmSync(stateDir, { recursive: true, force: true });
   }
 });
@@ -740,9 +740,9 @@ test('only the persisted after-hook replacement records savings', async () => {
 // loadFrom rethrows, taking the whole plugin down. Bun tolerates it; Node does
 // not. This asserts the installed layout survives the strict runtime.
 test('plugin runtime keeps spill, dedup, and stats under OPENCODE_CONFIG_DIR', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-oc-runtime-root-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-oc-runtime-root-'));
   try {
-    const pluginPath = path.join(__dirname, '..', '.opencode', 'plugins', 'chisle.mjs');
+    const pluginPath = path.join(__dirname, '..', '.opencode', 'plugins', 'h3w.mjs');
     const probe = `
       const big = Array.from({length:220},(_,i)=>'line '+i+' '+'x'.repeat(80)).join('\\n');
       import(${JSON.stringify('file://' + pluginPath)}).then(async (m) => {
@@ -752,26 +752,26 @@ test('plugin runtime keeps spill, dedup, and stats under OPENCODE_CONFIG_DIR', (
         process.stdout.write(out.output.length < big.length ? 'COMPRESSED' : 'NOOP');
       });
     `;
-    const env = { ...process.env, OPENCODE_CONFIG_DIR: root, XDG_CONFIG_HOME: '', CHISLE_STATE_DIR: '' };
+    const env = { ...process.env, OPENCODE_CONFIG_DIR: root, XDG_CONFIG_HOME: '', H3W_STATE_DIR: '' };
     const result = spawnSync(process.execPath, ['--input-type=module', '-e', probe], { encoding: 'utf8', env });
     assert.equal(result.stdout, 'COMPRESSED', result.stderr);
-    assert.ok(fs.readdirSync(path.join(root, 'chisle-spill')).some(name => name.endsWith('.txt')));
-    assert.ok(fs.readdirSync(path.join(root, 'chisle-dedup')).some(name => name.endsWith('.json')));
-    assert.ok(fs.existsSync(path.join(root, '.chisle-compress-stats.json')));
+    assert.ok(fs.readdirSync(path.join(root, 'h3w-spill')).some(name => name.endsWith('.txt')));
+    assert.ok(fs.readdirSync(path.join(root, 'h3w-dedup')).some(name => name.endsWith('.json')));
+    assert.ok(fs.existsSync(path.join(root, '.h3w-compress-stats.json')));
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
 
 test('installed plugin still compresses when the config dir is type:module', async () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'chisle-oc-mod-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'h3w-oc-mod-'));
   try {
     const { spawnSync } = require('child_process');
     const cli = path.join(__dirname, '..', 'bin', 'install.js');
     const r = spawnSync(process.execPath, [cli, '--only', 'opencode'], {
       encoding: 'utf8',
       env: Object.assign({}, process.env, {
-        HOME: home, USERPROFILE: home, CHISLE_HOME: home,
+        HOME: home, USERPROFILE: home, H3W_HOME: home,
         XDG_CONFIG_HOME: '', OPENCODE_CONFIG_DIR: '',
       }),
     });
@@ -782,7 +782,7 @@ test('installed plugin still compresses when the config dir is type:module', asy
 
     const probe = `
       const big = Array.from({length:500},(_,i)=>'line '+i+' '+'x'.repeat(80)).join('\\n');
-      import(${JSON.stringify('file://' + path.join(oc, 'plugins', 'chisle.js'))})
+      import(${JSON.stringify('file://' + path.join(oc, 'plugins', 'h3w.js'))})
         .then(async (m) => {
           const hooks = await m.default({});
           const out = { output: big };
